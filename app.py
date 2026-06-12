@@ -31,7 +31,7 @@ from urllib.parse import quote_plus, urljoin
 import requests
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -464,6 +464,11 @@ def _sse(obj: dict) -> str:
 # ─────────────────────────────────────────────────────────────
 # Pages
 # ─────────────────────────────────────────────────────────────
+@app.head("/")
+def tablet_head():
+    return Response()
+
+
 @app.get("/")
 def tablet():
     return FileResponse(STATIC / "tablet.html")
