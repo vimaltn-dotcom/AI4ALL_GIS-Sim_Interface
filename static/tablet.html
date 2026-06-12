@@ -27,12 +27,6 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 #cine::after{content:"";position:absolute;inset:0;opacity:.05;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E")}
 
-/* ════ GULL FLOCK (ported from MorphLayer) ════ */
-#flock{position:fixed;inset:0;z-index:3;pointer-events:none;transition:opacity 2s ease}
-.gull{position:absolute;animation:drift linear infinite alternate;transition:opacity 1.5s}
-.gull svg path{animation:flap ease-in-out infinite alternate;transform-origin:50% 60%}
-@keyframes drift{from{transform:translate(0,0)}to{transform:translate(34px,-12px)}}
-@keyframes flap{from{d:path("M1 7 Q6 1 12 6 Q18 1 23 7")}to{d:path("M1 4 Q6 9 12 5 Q18 9 23 4")}}
 
 /* ════ GHOST YEAR ════ */
 #ghostYear{position:fixed;right:2vw;top:48%;transform:translateY(-50%);z-index:4;pointer-events:none;
@@ -178,7 +172,6 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 <body>
 <div id="map"></div>
 <div id="cine"></div>
-<div id="flock"></div>
 <div id="ghostYear" class="mono"><span id="gyNum">2025</span><span class="src" id="gySrc"></span></div>
 
 <div id="brand">
@@ -241,7 +234,7 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
         <path d="M12.42 19.42A2 2 0 1 0 14 16H2"/>
         <path d="M14.73 8.27A2.5 2.5 0 1 1 17 12H2"/>
       </svg></div>
-      <div class="nm">AIR</div>
+      <div class="nm">TRAFFIC</div>
     </div>
     <div class="topic" data-tab="life">
       <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5db865" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -305,6 +298,12 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 let DATA=null, CFG=null, scene=null, HEAT={}, AIR={}, LIFE={};
+const TRAFFIC_DATA={
+  2005:{flights_day:448,passengers:'27.1M',noise:'62 dB'},
+  2011:{flights_day:564,passengers:'34.4M',noise:'68 dB'},
+  2017:{flights_day:768,passengers:'47.3M',noise:'74 dB'},
+  2024:{flights_day:921,passengers:'55.4M',noise:'78 dB'},
+};
 const ST={stage:'hook',tab:'land',year:2020,scenario:null};
 /* LAND / LIFE: GLC_FCS30D years · HEAT / AIR: MODIS satellite years */
 const LAND_SEQ=[1985,2000,2010,2020], DATA_SEQ=[2005,2011,2017,2024];
@@ -338,13 +337,13 @@ const STORY={
          2017:'The sealed footprint keeps growing. Wetland fragments struggle to offset the heat absorbed around them.',
          2024:'Two decades of satellite data confirm a persistent heat island over the airport and the city edge.'},
     minis:y=>[['July mean (ERA5)',HEAT[y]?HEAT[y].mean_c+' °C':'—'],['Anomaly vs 2005',HEAT[y]?'+'+HEAT[y].anomaly+' °C':'—']]},
-  pollution:{k:'AIR QUALITY',t:'The air above',
-    hero:y=>[AIR[y]?AIR[y].pm25+' µg/m³':'—','PM2.5 particle pollution · CAMS reanalysis'],
-    cap:{2005:'Peak era: 27 million passengers, road freight and construction all burning diesel across the delta.',
-         2011:'EU clean-air directives bite — engines improve, but traffic volumes keep climbing.',
-         2017:'MODIS aerosol data confirms a persistent particle plume fixed over the runways and ring roads.',
-         2024:'Cleaner aircraft and some electrification cut peaks — but the plume never fully lifts.'},
-    minis:y=>[['PM2.5',AIR[y]?AIR[y].pm25+' µg/m³':'—'],['NO₂',AIR[y]?AIR[y].no2+' µg/m³':'—']]},
+  pollution:{k:'AIR TRAFFIC',t:'The sky above',
+    hero:y=>[TRAFFIC_DATA[y]?TRAFFIC_DATA[y].flights_day+' flights/day':'—','daily movements · El Prat airport'],
+    cap:{2005:'448 daily flights, 27 million passengers — a relentless corridor of metal above the marsh. The approach paths already cross the lagoons.',
+         2011:'Traffic rebounds after the recession. Low-cost carriers multiply routes: 564 daily movements rattle every remaining corner of the delta.',
+         2017:'Saturation. 768 daily flights trace continuous corridors over nesting wetland — the noise contour has swallowed the last quiet fragments.',
+         2024:'Post-pandemic record: 921 daily movements. The skies above the delta have never been busier — or louder. A third runway would double this.'},
+    minis:y=>[['Passengers/year',TRAFFIC_DATA[y]?.passengers??'—'],['Noise index',TRAFFIC_DATA[y]?.noise??'—']]},
   life:{k:'LIFE & BIODIVERSITY',t:'What still lives here',
     hero:y=>[LIFE[y]?.species??'—','bird species in GBIF records for the delta'],
     cap:{1985:'The delta holds one of the richest coastal habitats on the Catalan coast — protected wetland interlaced with farmland.',
@@ -355,62 +354,47 @@ const STORY={
 };
 const LEGENDS={
   temperature:[['#1a6faa','Cool'],['#ff6a00','Warm'],['#cc0000','Hot']],
-  pollution:[['#1a9850','Cleaner'],['#fdae61','Moderate'],['#7b3294','Polluted']],
+  pollution:[['#00ccff','Arrivals (ILS 25R/25L)'],['#ffaa44','Departures (SID 07L/07R)'],['rgba(200,155,70,0.55)','Noise & exhaust plume']],
   life:[['#54d07a','Living habitat'],['#39c0e0','Water'],['rgba(255,255,255,.15)','Lost ground']]
 };
 
-/* ── gull flock (ported from MorphLayer) ── */
-const FLOCK_N={1985:18,2000:12,2010:6,2020:3};
-function buildFlock(){
-  const host=$('#flock');
-  for(let i=0;i<26;i++){
-    const gx=(i*53)%100, gy=(i*31)%100;
-    const sp=document.createElement('span'); sp.className='gull';
-    sp.style.left=(6+gx/100*58)+'%'; sp.style.top=(8+gy/100*30)+'%';
-    sp.style.animationDuration=(9+((i*7)%80)/10)+'s'; sp.style.animationDelay=`-${(i*0.37).toFixed(2)}s`;
-    sp.innerHTML=`<svg viewBox="0 0 24 10" width="${26+((i*17)%14)}" height="12">
-      <path d="M1 7 Q6 1 12 6 Q18 1 23 7" fill="none" stroke="rgba(238,242,240,.85)" stroke-width="1.8"
-        stroke-linecap="round" style="animation-duration:${(0.7+((i*13)%60)/100)}s;animation-delay:-${(i*0.37).toFixed(2)}s"/></svg>`;
-    host.appendChild(sp);
-  }
-}
-/* ── bittern flock on map ── */
+/* ── bittern flock on map ──
+   liftT maps to year via: year = 1969 + liftT * 56
+   1985 → t≈0.29 | 2000 → t≈0.55 | 2010 → t≈0.73 | 2020 → t≈0.91
+   Birds depart progressively: all present 1985, few remain by 2020. ── */
 const BITTERNS=[
-  // La Ricarda lagoon — original cluster
-  {lat:41.2768,lng:2.0688,liftT:0.12,dir: 0.45,phase:0.00},
-  {lat:41.2774,lng:2.0695,liftT:0.22,dir: 2.60,phase:0.55},
-  {lat:41.2764,lng:2.0706,liftT:0.32,dir: 1.10,phase:1.10},
-  {lat:41.2780,lng:2.0678,liftT:0.42,dir:-0.30,phase:1.65},
-  {lat:41.2772,lng:2.0715,liftT:0.54,dir: 2.00,phase:2.20},
-  // El Remolar — original cluster
-  {lat:41.2730,lng:2.0768,liftT:0.64,dir: 0.70,phase:2.75},
-  {lat:41.2738,lng:2.0758,liftT:0.72,dir: 1.80,phase:3.30},
-  {lat:41.2724,lng:2.0752,liftT:0.80,dir:-0.80,phase:3.85},
-  // Survivors (original)
-  {lat:41.2790,lng:2.0645,liftT:9.99,dir: 0.00,phase:4.40},
-  {lat:41.2785,lng:2.0658,liftT:9.99,dir: 0.00,phase:4.95},
-  // La Ricarda extended
-  {lat:41.2760,lng:2.0700,liftT:0.08,dir:-0.60,phase:5.50},
-  {lat:41.2776,lng:2.0710,liftT:0.18,dir: 1.30,phase:6.05},
-  {lat:41.2763,lng:2.0682,liftT:0.26,dir: 2.10,phase:6.60},
-  {lat:41.2779,lng:2.0722,liftT:0.38,dir:-1.00,phase:7.15},
-  {lat:41.2770,lng:2.0693,liftT:0.48,dir: 0.30,phase:7.70},
-  // El Remolar extended
-  {lat:41.2733,lng:2.0775,liftT:0.58,dir: 1.60,phase:8.25},
-  {lat:41.2720,lng:2.0760,liftT:0.68,dir:-0.50,phase:8.80},
-  {lat:41.2741,lng:2.0748,liftT:0.76,dir: 2.30,phase:9.35},
-  {lat:41.2728,lng:2.0782,liftT:0.84,dir: 0.90,phase:9.90},
-  {lat:41.2735,lng:2.0755,liftT:0.90,dir:-1.20,phase:10.45},
-  // River delta marsh
-  {lat:41.2795,lng:2.0630,liftT:0.15,dir:-0.80,phase:11.00},
-  {lat:41.2800,lng:2.0650,liftT:0.30,dir: 1.80,phase:11.55},
-  {lat:41.2788,lng:2.0620,liftT:0.46,dir: 0.60,phase:12.10},
-  {lat:41.2802,lng:2.0638,liftT:0.62,dir:-1.50,phase:12.65},
-  {lat:41.2793,lng:2.0660,liftT:0.78,dir: 2.40,phase:13.20},
-  // Stragglers
-  {lat:41.2765,lng:2.0698,liftT:0.86,dir: 1.10,phase:13.75},
-  {lat:41.2740,lng:2.0742,liftT:0.92,dir:-0.30,phase:14.30},
-  // Additional survivors
+  // Early departures — leave in the late 1970s / early 1980s
+  {lat:41.2760,lng:2.0700,liftT:0.14,dir:-0.60,phase:0.00},
+  {lat:41.2776,lng:2.0710,liftT:0.20,dir: 1.30,phase:0.55},
+  {lat:41.2763,lng:2.0682,liftT:0.24,dir: 2.10,phase:1.10},
+  {lat:41.2779,lng:2.0722,liftT:0.27,dir:-1.00,phase:1.65},
+  // Main exodus — late 1980s through mid-1990s
+  {lat:41.2768,lng:2.0688,liftT:0.32,dir: 0.45,phase:2.20},
+  {lat:41.2774,lng:2.0695,liftT:0.35,dir: 2.60,phase:2.75},
+  {lat:41.2770,lng:2.0693,liftT:0.38,dir: 0.30,phase:3.30},
+  {lat:41.2780,lng:2.0678,liftT:0.41,dir:-0.30,phase:3.85},
+  {lat:41.2772,lng:2.0715,liftT:0.44,dir: 2.00,phase:4.40},
+  {lat:41.2795,lng:2.0630,liftT:0.47,dir:-0.80,phase:4.95},
+  {lat:41.2800,lng:2.0650,liftT:0.50,dir: 1.80,phase:5.50},
+  {lat:41.2788,lng:2.0620,liftT:0.53,dir: 0.60,phase:6.05},
+  // Second wave — late 1990s through early 2000s
+  {lat:41.2730,lng:2.0768,liftT:0.57,dir: 0.70,phase:6.60},
+  {lat:41.2738,lng:2.0758,liftT:0.60,dir: 1.80,phase:7.15},
+  {lat:41.2733,lng:2.0775,liftT:0.63,dir: 1.60,phase:7.70},
+  {lat:41.2724,lng:2.0752,liftT:0.66,dir:-0.80,phase:8.25},
+  {lat:41.2802,lng:2.0638,liftT:0.69,dir:-1.50,phase:8.80},
+  {lat:41.2793,lng:2.0660,liftT:0.72,dir: 2.40,phase:9.35},
+  // Late holdouts — 2005-2015, after third runway
+  {lat:41.2720,lng:2.0760,liftT:0.75,dir:-0.50,phase:9.90},
+  {lat:41.2741,lng:2.0748,liftT:0.78,dir: 2.30,phase:10.45},
+  {lat:41.2728,lng:2.0782,liftT:0.81,dir: 0.90,phase:11.00},
+  {lat:41.2735,lng:2.0755,liftT:0.84,dir:-1.20,phase:11.55},
+  {lat:41.2765,lng:2.0698,liftT:0.87,dir: 1.10,phase:12.10},
+  {lat:41.2740,lng:2.0742,liftT:0.90,dir:-0.30,phase:12.65},
+  {lat:41.2758,lng:2.0720,liftT:0.93,dir: 0.80,phase:13.20},
+  // Survivors — permanent residents of the protected fragments
+  {lat:41.2790,lng:2.0645,liftT:9.99,dir: 0.00,phase:13.75},
+  {lat:41.2785,lng:2.0658,liftT:9.99,dir: 0.00,phase:14.30},
   {lat:41.2787,lng:2.0668,liftT:9.99,dir: 0.00,phase:14.85},
   {lat:41.2773,lng:2.0640,liftT:9.99,dir: 0.00,phase:15.40},
   {lat:41.2730,lng:2.0762,liftT:9.99,dir: 0.00,phase:15.95},
@@ -459,11 +443,141 @@ function stopBirds(){
   birdOverlay.style.opacity='0';
 }
 
+/* ── FLIGHT SIMULATION (air traffic tab) ──
+   El Prat (LEBL) runways: 07L/25R and 07R/25L, heading ~073°/253° magnetic.
+   25R = land facing WSW (253°), approach from ENE over the Mediterranean.
+   07L = land facing ENE (073°), approach from WSW (rare, east-wind ops).
+   Threshold 25R at ~41.300°N 2.100°E; threshold 07L at ~41.295°N 2.076°E.  ── */
+const ROUTES=[
+  // ILS 25R approach — ENE over sea, heading 253° (most used)
+  {type:'arr',glow:'#00ccff',pts:[[41.342,2.338],[41.320,2.218],[41.300,2.100]]},
+  // ILS 25L approach — parallel runway, slightly south track
+  {type:'arr',glow:'#00ccff',pts:[[41.338,2.334],[41.316,2.214],[41.297,2.096]]},
+  // RNAV curved arrival from SE (southern arc over the sea)
+  {type:'arr',glow:'#00ccff',pts:[[41.250,2.252],[41.272,2.176],[41.297,2.094]]},
+  // SID 07L departure — climbing ENE to BCN VOR then north coast
+  {type:'dep',glow:'#ffaa44',pts:[[41.300,2.100],[41.320,2.220],[41.348,2.362]]},
+  // SID 07R departure — ENE, curves slightly south of 07L track
+  {type:'dep',glow:'#ffaa44',pts:[[41.297,2.096],[41.314,2.208],[41.336,2.348]]},
+  // 25R departure westbound over sea (tail-wind ops)
+  {type:'dep',glow:'#ffaa44',pts:[[41.296,2.080],[41.278,1.934],[41.258,1.774]]},
+];
+function _catmull(p0,p1,p2,p3,t){
+  return 0.5*(2*p1+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t*t+(-p0+3*p1-3*p2+p3)*t*t*t);
+}
+function _routePt(pts,t){
+  const n=pts.length-1,seg=Math.min(Math.floor(t*n),n-1),st=t*n-seg;
+  const i=seg;
+  const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[Math.min(n,i+1)],p3=pts[Math.min(n,i+2)];
+  return [_catmull(p0[0],p1[0],p2[0],p3[0],st),_catmull(p0[1],p1[1],p2[1],p3[1],st)];
+}
+let flights=[],flightCanvas=null,flightCtx=null,flightRaf=null;
+function initFlightCanvas(){
+  flightCanvas=document.createElement('canvas');
+  Object.assign(flightCanvas.style,{position:'fixed',inset:'0',zIndex:'5',
+    pointerEvents:'none',width:'100%',height:'100%',
+    transition:'opacity 1.8s ease',opacity:'0'});
+  document.body.appendChild(flightCanvas);
+  flightCtx=flightCanvas.getContext('2d');
+}
+function _spawnFlight(){
+  const ri=Math.floor(Math.random()*ROUTES.length);
+  // stagger arrivals vs departures
+  flights.push({ri,t:0,trail:[],alpha:0,speed:0.00075+Math.random()*0.0003});
+}
+function _drawFlights(){
+  if(!scene||!scene.map||!flightCtx) return;
+  const W=window.innerWidth,H=window.innerHeight;
+  flightCanvas.width=W; flightCanvas.height=H;
+  const td=TRAFFIC_DATA[ST.year]||TRAFFIC_DATA[2005];
+  const want=Math.max(3,Math.round(td.flights_day/95));
+  if(flights.length<want&&Math.random()<0.05) _spawnFlight();
+
+  // Noise/pollution haze bloom around airport
+  const aPos=scene.map.latLngToContainerPoint([41.2971,2.0785]);
+  const hr=60+(td.flights_day/921)*110;
+  const hg=flightCtx.createRadialGradient(aPos.x,aPos.y,8,aPos.x,aPos.y,hr);
+  hg.addColorStop(0,'rgba(200,155,70,0.20)');
+  hg.addColorStop(0.5,'rgba(200,155,70,0.08)');
+  hg.addColorStop(1,'rgba(200,155,70,0)');
+  flightCtx.fillStyle=hg; flightCtx.fillRect(0,0,W,H);
+
+  flights=flights.filter(f=>{
+    f.t+=f.speed;
+    if(f.t>0.12&&f.alpha<1) f.alpha=Math.min(1,f.alpha+0.05);
+    if(f.t>0.88) f.alpha=Math.max(0,f.alpha-0.06);
+    if(f.t>=1) return false;
+    const rt=ROUTES[f.ri];
+    const [lat,lng]=_routePt(rt.pts,f.t);
+    const pt=scene.map.latLngToContainerPoint([lat,lng]);
+    f.trail.push({x:pt.x,y:pt.y});
+    if(f.trail.length>14) f.trail.shift();
+    // direction
+    const [la2,ln2]=_routePt(rt.pts,Math.min(1,f.t+0.012));
+    const pt2=scene.map.latLngToContainerPoint([la2,ln2]);
+    const ang=Math.atan2(pt2.y-pt.y,pt2.x-pt.x);
+    // contrail — white with glow, clearly visible on satellite
+    if(f.trail.length>2){
+      flightCtx.save();
+      flightCtx.globalAlpha=f.alpha;
+      flightCtx.shadowBlur=5; flightCtx.shadowColor=rt.glow;
+      flightCtx.beginPath();
+      flightCtx.moveTo(f.trail[0].x,f.trail[0].y);
+      for(const p of f.trail) flightCtx.lineTo(p.x,p.y);
+      flightCtx.strokeStyle='rgba(255,255,255,0.5)';
+      flightCtx.lineWidth=2; flightCtx.stroke();
+      flightCtx.restore();
+    }
+    // plane icon — white fill, coloured glow so visible on any satellite texture
+    const s=8;
+    flightCtx.save();
+    flightCtx.globalAlpha=f.alpha;
+    flightCtx.translate(pt.x,pt.y);
+    flightCtx.rotate(ang);
+    flightCtx.shadowBlur=10; flightCtx.shadowColor=rt.glow;
+    flightCtx.fillStyle='rgba(255,255,255,0.96)';
+    // fuselage
+    flightCtx.beginPath();
+    flightCtx.ellipse(0,0,s*0.28,s,0,0,Math.PI*2);
+    flightCtx.fill();
+    // wings
+    flightCtx.beginPath();
+    flightCtx.moveTo(-s*1.35,s*0.08);
+    flightCtx.lineTo(s*1.35,s*0.08);
+    flightCtx.lineTo(s*0.72,s*0.44);
+    flightCtx.lineTo(-s*0.72,s*0.44);
+    flightCtx.closePath(); flightCtx.fill();
+    // tail
+    flightCtx.beginPath();
+    flightCtx.moveTo(-s*0.50,s*0.80);
+    flightCtx.lineTo(s*0.50,s*0.80);
+    flightCtx.lineTo(s*0.20,s*0.34);
+    flightCtx.lineTo(-s*0.20,s*0.34);
+    flightCtx.closePath(); flightCtx.fill();
+    flightCtx.restore();
+    return true;
+  });
+  if(ST.tab==='pollution'&&ST.stage==='explore'){
+    flightRaf=requestAnimationFrame(_drawFlights);
+  } else {
+    flightRaf=null;
+  }
+}
+function startFlights(){
+  if(flightRaf) return;
+  flights=[];
+  flightCanvas.style.opacity='1';
+  flightRaf=requestAnimationFrame(_drawFlights);
+}
+function stopFlights(){
+  if(flightRaf){cancelAnimationFrame(flightRaf);flightRaf=null;}
+  if(flightCanvas) flightCanvas.style.opacity='0';
+  setTimeout(()=>{flights=[];},1800);
+}
+
 function flockFor(year,tab){
-  const visible=(tab==='land'||tab==='life')&&ST.stage!=='decide';
-  const n=visible?(FLOCK_N[year]??3):0;
-  $$('#flock .gull').forEach((g,i)=>g.style.opacity=i<n?1:0);
   if(tab==='life'&&ST.stage==='explore') startBirds(); else stopBirds();
+  if(tab==='pollution'&&ST.stage==='explore') startFlights(); else stopFlights();
 }
 
 /* ── stage switching ── */
@@ -471,8 +585,7 @@ function showStage(stage){
   ST.stage=stage;
   $$('.stage').forEach(s=>s.classList.remove('show'));
   $('#'+stage).classList.add('show');
-  if(stage==='decide'||stage==='result'){stopCycle();stopBirds();}
-  if(stage==='decide') $('#flock').style.opacity=0; else $('#flock').style.opacity=1;
+  if(stage==='decide'||stage==='result'){stopCycle();stopBirds();stopFlights();}
 }
 
 /* ── ghost year ── */
@@ -605,7 +718,7 @@ function listenStream(){
   LIFE=await (await fetch('/api/life-data')).json().catch(()=>({}));
   scene=new DeltaScene('map',CFG,{interactive:false,heat:HEAT});
   setTimeout(()=>{scene.invalidate();scene.fitDelta(0);},90);
-  buildFlock(); bind(); fillChoiceMetrics(); showStage('hook'); startHookLoop(); listenStream();
+  initFlightCanvas(); bind(); fillChoiceMetrics(); showStage('hook'); startHookLoop(); listenStream();
 })();
 </script>
 </body>

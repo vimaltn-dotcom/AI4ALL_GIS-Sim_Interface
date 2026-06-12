@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: ground-beneath-growth
+    env: python
+    region: frankfurt
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    healthCheckPath: /api/tally
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0

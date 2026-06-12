@@ -17,12 +17,6 @@ html,body{height:100%;background:#000;overflow:hidden;cursor:none;font-family:'A
 #vig{position:absolute;inset:0;z-index:600;pointer-events:none;
   background:radial-gradient(ellipse at 50% 46%,transparent 46%,rgba(0,0,0,.6) 100%)}
 
-/* gull flock */
-#flock{position:absolute;inset:0;z-index:650;pointer-events:none}
-.gull{position:absolute;animation:drift linear infinite alternate;transition:opacity 1.5s}
-@keyframes drift{from{transform:translate(0,0)}to{transform:translate(38px,-14px)}}
-.gull svg path{animation:flap ease-in-out infinite alternate}
-@keyframes flap{from{d:path("M1 7 Q6 1 12 6 Q18 1 23 7")}to{d:path("M1 4 Q6 9 12 5 Q18 9 23 4")}}
 
 /* ghost year */
 #ghost{position:absolute;right:4vmin;top:8vmin;z-index:700;text-align:right;pointer-events:none;transition:opacity .8s;opacity:0}
@@ -65,7 +59,6 @@ html,body{height:100%;background:#000;overflow:hidden;cursor:none;font-family:'A
   <div id="mapBox">
     <div id="projMap"></div>
     <div id="vig"></div>
-    <div id="flock"></div>
     <div id="ghost"><div class="n" id="gN">2025</div><div class="s" id="gS"></div></div>
     <div id="legend"></div>
     <div id="grid"></div>
@@ -98,9 +91,9 @@ const LAYER_META={
   temperature:{k:'SURFACE TEMPERATURE',lede:'Sealed surfaces trap heat — the delta runs hotter each decade.',
     hero:y=>['+'+DATA.temperature[y].anomaly+'°C','warming since 1969'],
     legend:[['#2c7fb8','Cool'],['#fec44f','Warm'],['#d7301f','Hot']]},
-  pollution:{k:'AIR QUALITY',lede:'A pollution plume grows over the airport and drifts across the city.',
-    hero:y=>['AQI '+DATA.pollution[y].aqi,'NO₂ '+DATA.pollution[y].no2+' µg/m³'],
-    legend:[['#1a9850','Cleaner'],['#fdae61','Moderate'],['#7b3294','Polluted']]},
+  pollution:{k:'AIR TRAFFIC',lede:'Daily flights trace continuous corridors above the wetland — noise contours grow with each decade.',
+    hero:y=>[{2005:448,2011:564,2017:768,2024:921}[y]||'—','daily movements · El Prat'],
+    legend:[['#00ccff','Arrivals (ILS 25R/25L)'],['#ffaa44','Departures (SID 07L/07R)']]},
   life:{k:'LIFE & BIODIVERSITY',lede:'Green is where wildlife can still live — going out like lights.',
     hero:y=>[DATA.life[y].bird_species,'bird species still recorded'],
     legend:[['#54d07a','Living habitat'],['#39c0e0','Water']]}
@@ -110,26 +103,6 @@ const SCEN_META={
   balance:{k:'2050 · BALANCE',big:'A negotiated delta.',lede:'Limited growth with protections. The wetland holds on.',hero:['4.6%','wetland remains']},
   protect:{k:'2050 · PROTECTION',big:'The delta, recovering.',lede:'No new runway. Wetlands and wildlife return.',hero:['5.3%','wetland — and growing']}
 };
-const FLOCK_N={1969:24,1985:16,2005:7,2025:3};
-
-function buildFlock(){
-  const host=$('#flock');
-  for(let i=0;i<26;i++){
-    const gx=(i*53)%100, gy=(i*31)%100;
-    const sp=document.createElement('span'); sp.className='gull';
-    sp.style.left=(6+gx/100*58)+'%'; sp.style.top=(8+gy/100*30)+'%';
-    sp.style.animationDuration=(9+((i*7)%80)/10)+'s'; sp.style.animationDelay=`-${(i*0.37).toFixed(2)}s`;
-    sp.innerHTML=`<svg viewBox="0 0 24 10" width="${30+((i*17)%16)}" height="13">
-      <path d="M1 7 Q6 1 12 6 Q18 1 23 7" fill="none" stroke="rgba(238,242,240,.9)" stroke-width="1.8"
-        stroke-linecap="round" style="animation-duration:${(0.7+((i*13)%60)/100)}s;animation-delay:-${(i*0.37).toFixed(2)}s"/></svg>`;
-    host.appendChild(sp);
-  }
-}
-function flockFor(year,tab,stage){
-  const visible=(tab==='land'||tab==='life')&&stage!=='decide';
-  const n=visible?(FLOCK_N[year]??3):0;
-  $$('#flock .gull').forEach((g,i)=>g.style.opacity=i<n?1:0);
-}
 function ghost(year,src){
   const g=$('#ghost'); g.classList.remove('on');
   setTimeout(()=>{$('#gN').textContent=year;$('#gS').textContent=src||'';g.classList.add('on');},260);
@@ -143,7 +116,7 @@ function startIdle(){
   stopIdle();
   const tick=()=>{ idleIdx=(idleIdx+1)%SEQ.length; const y=SEQ[idleIdx];
     scene.setView({tab:'land',year:y,stage:'explore'},{ms:2600});
-    $('#idleYr').textContent=y; ghost(y,YEAR_SRC[y]); flockFor(y,'land','hook'); };
+    $('#idleYr').textContent=y; ghost(y,YEAR_SRC[y]); };
   tick(); idleTimer=setInterval(tick,4600);
 }
 function stopIdle(){ if(idleTimer){clearInterval(idleTimer);idleTimer=null;} }
@@ -159,7 +132,7 @@ function draw(){
     const m=SCEN_META[ST.scenario];
     $('#hudK').textContent=m.k; $('#hudBig').textContent=m.big; $('#hudLede').textContent=m.lede;
     $('#heroV').textContent=m.hero[0]; $('#heroL').textContent=m.hero[1];
-    ghost(2050,ST.scenario.toUpperCase()); flockFor(ST.scenario==='protect'?1985:2025,'land','result');
+    ghost(2050,ST.scenario.toUpperCase());
     paintLegend(landLegend()); return;
   }
   const lm=LAYER_META[ST.tab]||LAYER_META.land;
@@ -167,7 +140,6 @@ function draw(){
   $('#hudK').textContent=lm.k; $('#hudBig').textContent=''; $('#hudLede').textContent=lm.lede;
   const [v,l]=lm.hero(ST.year); $('#heroV').textContent=v; $('#heroL').textContent=l;
   ghost(ST.year,ST.tab==='land'?YEAR_SRC[ST.year]:lm.k);
-  flockFor(ST.year,ST.tab,ST.stage);
   paintLegend(ST.tab==='land'?landLegend():lm.legend);
 }
 
@@ -184,7 +156,6 @@ addEventListener('resize',()=>{if(scene){scene.invalidate();scene.fitDelta(0);}}
   const HEAT=await (await fetch('/api/heat-data')).json().catch(()=>({}));
   scene=new DeltaScene('projMap',CFG,{interactive:false,heat:HEAT});
   setTimeout(()=>{scene.invalidate();scene.fitDelta(0);},90);
-  buildFlock();
   try{const st=await (await fetch('/api/state')).json();Object.assign(ST,st);}catch(e){}
   draw(); listen();
 })();

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 import time
 from functools import lru_cache
@@ -67,7 +68,11 @@ def _load_votes() -> dict:
 
 
 def _save_votes(v: dict) -> None:
-    VOTES_FILE.write_text(json.dumps(v))
+    try:
+        DATA.mkdir(exist_ok=True)
+        VOTES_FILE.write_text(json.dumps(v))
+    except Exception:
+        pass
 
 
 VOTES = _load_votes()
@@ -473,9 +478,10 @@ app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
     print("\n  THE GROUND BENEATH GROWTH — installation server")
     print("  ────────────────────────────────────────────────")
-    print("  Tablet     →  http://localhost:8000/")
-    print("  Projection →  http://localhost:8000/projection")
-    print("  Reset day  →  http://localhost:8000/api/reset\n")
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")
+    print(f"  Tablet     →  http://localhost:{port}/")
+    print(f"  Projection →  http://localhost:{port}/projection")
+    print(f"  Reset day  →  http://localhost:{port}/api/reset\n")
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")

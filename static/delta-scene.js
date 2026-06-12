@@ -171,29 +171,9 @@
         return;
       }
 
-      // temperature → MODIS LST satellite tiles (2005/2011/2017/2024)
-      // + a progressive heat-field overlay that deepens red for later years
-      if (tab === 'temperature' && this._L['modis' + year]) {
-        targets['modis' + year] = 0.85;
-        const HEAT_OVERLAY = { 2005: 0.0, 2011: 0.18, 2017: 0.30, 2024: 0.46 };
-        const overlayOp = HEAT_OVERLAY[year] ?? 0;
-        if (overlayOp > 0) {
-          const anomaly = this._heat[year]?.anomaly ?? null;
-          const slot = this._stageField({ layer: 'temperature', year, anomaly });
-          targets[slot] = overlayOp;
-        }
-        this._tween(targets, GRADES.field, ms);
-        return;
-      }
-      // pollution → MODIS AOD satellite tiles (2005/2011/2017/2024)
-      if (tab === 'pollution' && this._L['aod' + year]) {
-        targets['aod' + year] = 0.78;
-        this._tween(targets, GRADES.field, ms);
-        return;
-      }
-      const anomaly = tab === 'temperature' ? (this._heat[year]?.anomaly ?? null) : null;
-      const slot = this._stageField({ layer: tab, year, anomaly });
-      targets[slot] = 0.92;
+      // temperature, pollution (air traffic), life — show clean satellite base.
+      // Visual overlays (MODIS tiles, DeltaMap fields) are removed; the story
+      // card and canvas animations (flights, birds) carry the data narrative.
       this._tween(targets, GRADES.field, ms);
     }
 
