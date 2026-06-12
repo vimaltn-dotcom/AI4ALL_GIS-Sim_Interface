@@ -111,8 +111,8 @@
   function mix(a, b, f) { return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]; }
   function rgb(a) { return `rgb(${a[0] | 0},${a[1] | 0},${a[2] | 0})`; }
 
-  // temperature ramp: cool teal → warm yellow → hot red
-  const T_COOL = hexToRgb('#2c7fb8'), T_MID = hexToRgb('#fec44f'), T_HOT = hexToRgb('#d7301f');
+  // temperature ramp: cool blue → amber → deep red-crimson
+  const T_COOL = hexToRgb('#1a6faa'), T_MID = hexToRgb('#e85d00'), T_HOT = hexToRgb('#8b0000');
   function tempColor(v) { return v < 0.5 ? rgb(mix(T_COOL, T_MID, v / 0.5)) : rgb(mix(T_MID, T_HOT, (v - 0.5) / 0.5)); }
 
   // pollution ramp: clear → amber → violet-brown
@@ -146,6 +146,7 @@
       const layer = state.layer || 'land';
       const phase = state.phase || 'history';
       const t = state.t != null ? state.t : yearToT(state.year || 2025);
+      const anomaly = state.anomaly != null ? state.anomaly : null;
       const scenario = state.scenario || null;
 
       ctx.clearRect(0, 0, w, h);
@@ -160,15 +161,16 @@
         if (layer === 'temperature') {
           // sealed/dark surfaces store heat; water & wetland stay cool
           let heat = 0.18;
-          if (cls === 6) heat = 0.96;        // tarmac
-          else if (cls === 5) heat = 0.82;   // urban
-          else if (cls === 3) heat = 0.5;    // bare-ish farmland
-          else if (cls === 4) heat = 0.32;   // forest
-          else if (cls === 2) heat = 0.2;    // marsh
-          else if (cls === 1) heat = 0.1;    // water
+          if (cls === 6) heat = 0.97;        // tarmac
+          else if (cls === 5) heat = 0.86;   // urban
+          else if (cls === 3) heat = 0.52;   // bare-ish farmland
+          else if (cls === 4) heat = 0.28;   // forest
+          else if (cls === 2) heat = 0.12;   // marsh
+          else if (cls === 1) heat = 0.05;   // water
           else if (cls === 0) { color = '#0c1418'; ctx.fillStyle = color; ctx.fillRect(c.i * cw, c.j * ch, cw + 1, ch + 1); continue; }
-          // global warming lifts the whole field over time
-          heat = Math.min(1, heat + 0.12 * Math.max(0, t));
+          // real ERA5 anomaly (°C) calibrates the baseline; falls back to time-based proxy
+          const warming = anomaly != null ? Math.max(0, anomaly) / 6 : 0.18 * Math.max(0, t);
+          heat = Math.min(1, heat + warming);
           color = tempColor(heat);
         } else if (layer === 'pollution') {
           if (cls === 0) { ctx.fillStyle = '#0c1418'; ctx.fillRect(c.i * cw, c.j * ch, cw + 1, ch + 1); continue; }
@@ -213,6 +215,7 @@
       const layer = state.layer || 'temperature';
       const phase = state.phase || 'history';
       const t = state.t != null ? state.t : yearToT(state.year || 2025);
+      const anomaly = state.anomaly != null ? state.anomaly : null;
       const scenario = state.scenario || null;
       ctx.clearRect(0, 0, w, h);
 
@@ -225,10 +228,11 @@
           col = hexToRgb(COL[cls]); alpha = 0.72;
         } else if (layer === 'temperature') {
           if (cls === 0) continue;
-          let heat = cls === 6 ? 0.96 : cls === 5 ? 0.82 : cls === 3 ? 0.5 : cls === 4 ? 0.32 : cls === 2 ? 0.2 : 0.1;
-          heat = Math.min(1, heat + 0.12 * Math.max(0, t));
+          let heat = cls === 6 ? 0.97 : cls === 5 ? 0.86 : cls === 3 ? 0.52 : cls === 4 ? 0.28 : cls === 2 ? 0.12 : 0.05;
+          const warming = anomaly != null ? Math.max(0, anomaly) / 6 : 0.18 * Math.max(0, t);
+          heat = Math.min(1, heat + warming);
           col = (heat < 0.5) ? mix(T_COOL, T_MID, heat / 0.5) : mix(T_MID, T_HOT, (heat - 0.5) / 0.5);
-          alpha = 0.30 + 0.45 * heat;               // hotter = more opaque
+          alpha = 0.06 + 0.90 * heat;               // cool≈transparent, hot≈opaque
         } else if (layer === 'pollution') {
           if (cls === 0) continue;
           const ax = 0.62, ay = 0.72;

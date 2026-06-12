@@ -1,58 +1,18 @@
 {
-  "years_milestones": [1969, 1985, 2005, 2025],
-  "years_full": [1969, 1985, 1995, 2005, 2015, 2025],
+  "years_land": [1985, 2000, 2010, 2020],
+  "years_satellite": [2005, 2011, 2017, 2024],
   "land": {
-    "1969": { "pct_wetland": 9.6, "pct_farmland": 84.5, "pct_habitat": 1.3, "pct_buildup": 4.6 },
     "1985": { "pct_wetland": 8.07, "pct_farmland": 78.77, "pct_habitat": 0.85, "pct_buildup": 12.3 },
-    "1995": { "pct_wetland": 7.2, "pct_farmland": 73.85, "pct_habitat": 0.64, "pct_buildup": 18.31 },
-    "2005": { "pct_wetland": 6.24, "pct_farmland": 60.03, "pct_habitat": 0.0, "pct_buildup": 33.74 },
-    "2015": { "pct_wetland": 5.37, "pct_farmland": 48.16, "pct_habitat": 0.0, "pct_buildup": 46.47 },
-    "2025": { "pct_wetland": 4.68, "pct_farmland": 41.63, "pct_habitat": 0.0, "pct_buildup": 53.69 }
-  },
-  "temperature": {
-    "1969": { "mean_c": 17.4, "anomaly": 0.0, "uhi": 0.3 },
-    "1985": { "mean_c": 17.9, "anomaly": 0.5, "uhi": 0.9 },
-    "1995": { "mean_c": 18.6, "anomaly": 1.2, "uhi": 1.6 },
-    "2005": { "mean_c": 19.4, "anomaly": 2.0, "uhi": 2.4 },
-    "2015": { "mean_c": 20.3, "anomaly": 2.9, "uhi": 3.3 },
-    "2025": { "mean_c": 21.1, "anomaly": 3.7, "uhi": 4.1 }
-  },
-  "pollution": {
-    "1969": { "no2": 12, "pm25": 9, "aqi": 28 },
-    "1985": { "no2": 24, "pm25": 14, "aqi": 42 },
-    "1995": { "no2": 33, "pm25": 18, "aqi": 55 },
-    "2005": { "no2": 41, "pm25": 22, "aqi": 66 },
-    "2015": { "no2": 38, "pm25": 20, "aqi": 61 },
-    "2025": { "no2": 35, "pm25": 18, "aqi": 58 }
+    "2000": { "pct_wetland": 6.70, "pct_farmland": 64.71, "pct_habitat": 0.21, "pct_buildup": 28.38 },
+    "2010": { "pct_wetland": 5.81, "pct_farmland": 54.10, "pct_habitat": 0.00, "pct_buildup": 40.11 },
+    "2020": { "pct_wetland": 5.03, "pct_farmland": 44.90, "pct_habitat": 0.00, "pct_buildup": 50.08 }
   },
   "life": {
-    "1969": { "bird_species": 360, "habitat_quality": 95 },
-    "1985": { "bird_species": 312, "habitat_quality": 78 },
-    "1995": { "bird_species": 268, "habitat_quality": 62 },
-    "2005": { "bird_species": 198, "habitat_quality": 41 },
-    "2015": { "bird_species": 156, "habitat_quality": 29 },
-    "2025": { "bird_species": 121, "habitat_quality": 22 }
+    "1985": { "habitat_quality": 78 },
+    "2000": { "habitat_quality": 50 },
+    "2010": { "habitat_quality": 35 },
+    "2020": { "habitat_quality": 26 }
   },
-  "species": [
-    { "key": "bittern", "name": "Eurasian Bittern", "sci": "Botaurus stellaris", "type": "bird",
-      "curve": { "1969": 1.0, "1985": 0.92, "2005": 0.22, "2025": 0.04 },
-      "note": "A heron whose booming call once echoed across the reedbeds. Now effectively silent in the delta." },
-    { "key": "avocet", "name": "Pied Avocet", "sci": "Recurvirostra avosetta", "type": "bird",
-      "curve": { "1969": 1.0, "1985": 0.95, "2005": 0.35, "2025": 0.14 },
-      "note": "An elegant wader that nests in shallow lagoons — squeezed into shrinking patches of shore." },
-    { "key": "artichoke", "name": "Prat Artichoke", "sci": "Carxofa del Prat", "type": "crop",
-      "curve": { "1969": 0.95, "1985": 0.90, "2005": 0.48, "2025": 0.30 },
-      "note": "A protected local crop with its own denomination — its fields paved over for tarmac." },
-    { "key": "tomato", "name": "Prat Tomato", "sci": "Tomàquet del Prat", "type": "crop",
-      "curve": { "1969": 0.95, "1985": 0.88, "2005": 0.45, "2025": 0.28 },
-      "note": "A heritage tomato of the delta farms, vanishing as agriculture loses ground." },
-    { "key": "daffodil", "name": "Sea Daffodil", "sci": "Pancratium maritimum", "type": "plant",
-      "curve": { "1969": 1.0, "1985": 0.88, "2005": 0.38, "2025": 0.18 },
-      "note": "A fragrant dune lily clinging to the last undisturbed stretches of coast." },
-    { "key": "glasswort", "name": "Glasswort", "sci": "Salicornia ramosissima", "type": "plant",
-      "curve": { "1969": 1.0, "1985": 0.91, "2005": 0.44, "2025": 0.20 },
-      "note": "A salt-marsh pioneer that survives only where brackish water still reaches the land." }
-  ],
   "scenarios_2050": {
     "expand":  { "pct_wetland": 3.56, "pct_farmland": 24.64, "pct_habitat": 0.0,  "pct_buildup": 71.8,  "mean_c": 22.6, "aqi": 74, "bird_species": 78 },
     "balance": { "pct_wetland": 4.62, "pct_farmland": 36.28, "pct_habitat": 0.12, "pct_buildup": 58.98, "mean_c": 21.3, "aqi": 60, "bird_species": 138 },
