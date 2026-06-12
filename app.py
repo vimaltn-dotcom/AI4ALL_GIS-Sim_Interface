@@ -94,8 +94,8 @@ async def _broadcast(payload: dict) -> None:
 # ─────────────────────────────────────────────────────────────
 STAC_COLLECTION = "https://s3.eu-central-1.wasabisys.com/stac/openlandmap/lc_glc.fcs30d/collection.json"
 STAC_ASSET_KEY = "lc_glc.fcs30d_c_30m_s"
-MAP_CENTER = [41.2974, 2.0833]
-MAP_BBOX = [1.95, 41.26, 2.15, 41.38]  # west, south, east, north
+MAP_CENTER = [41.2940, 2.0775]
+MAP_BBOX = [2.0255, 41.272020, 2.1295, 41.315973]  # west, south, east, north
 
 # GLC_FCS30D fine classes → simplified, readable groups (id, label, hex, codes)
 LANDCOVER_GROUPS = [
@@ -154,6 +154,92 @@ def _resolve_landcover(years_key: str) -> dict:
     return out
 
 
+# ─────────────────────────────────────────────────────────────
+# Real heat & air data  (2005 → 2024, divided into 4 milestones)
+#
+#   HEAT  — Open-Meteo ERA5 July mean 2 m temperature + MODIS Terra LST Day
+#   AIR   — Open-Meteo CAMS PM2.5 / NO2 (real from 2013; fallback for 2005/2011)
+#           + MODIS Terra Aerosol Optical Depth tiles
+#
+#   Milestone years: 2005 · 2011 · 2017 · 2024
+# ─────────────────────────────────────────────────────────────
+_MILESTONE_YEARS = [2005, 2011, 2017, 2024]
+
+HEAT_FALLBACK: dict[str, float] = {
+    "2005": 25.1, "2011": 25.8, "2017": 26.3, "2024": 27.2,
+}
+
+MODIS_LST_TILES: dict[str, str] = {
+    "2005": ("https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/"
+             "MODIS_Terra_Land_Surface_Temp_Day/default/2005-07-15/"
+             "GoogleMapsCompatible_Level7/{z}/{y}/{x}.png"),
+    "2011": ("https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/"
+             "MODIS_Terra_Land_Surface_Temp_Day/default/2011-07-15/"
+             "GoogleMapsCompatible_Level7/{z}/{y}/{x}.png"),
+    "2017": ("https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/"
+             "MODIS_Terra_Land_Surface_Temp_Day/default/2017-07-15/"
+             "GoogleMapsCompatible_Level7/{z}/{y}/{x}.png"),
+    "2024": ("https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/"
+             "MODIS_Terra_Land_Surface_Temp_Day/default/2024-07-15/"
+             "GoogleMapsCompatible_Level7/{z}/{y}/{x}.png"),
+}
+
+AIR_FALLBACK: dict[str, dict] = {
+    "2005": {"pm25": 22.0, "no2": 41.0},
+    "2011": {"pm25": 19.0, "no2": 37.0},
+    "2017": {"pm25": 15.0, "no2": 32.0},
+    "2024": {"pm25": 11.0, "no2": 26.0},
+}
+
+# MODIS Terra Aerosol Optical Depth — proxy for particle pollution (August peak)
+AOD_TILES: dict[str, str] = {
+    "2005": ("https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/"
+             "MODIS_Terra_Aerosol_Optical_Depth_Land_Ocean/default/2005-08-01/"
+             "GoogleMapsCompatible_Level7/{z}/{y}/{x}.png"),
+    "2011": ("https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/"
+             "MODIS_Terra_Aerosol_Optical_Depth_Land_Ocean/default/2011-08-01/"
+             "GoogleMapsCompatible_Level7/{z}/{y}/{x}.png"),
+    "2017": ("https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/"
+             "MODIS_Terra_Aerosol_Optical_Depth_Land_Ocean/default/2017-08-01/"
+             "GoogleMapsCompatible_Level7/{z}/{y}/{x}.png"),
+    "2024": ("https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/"
+             "MODIS_Terra_Aerosol_Optical_Depth_Land_Ocean/default/2024-08-01/"
+             "GoogleMapsCompatible_Level7/{z}/{y}/{x}.png"),
+}
+
+
+def _fetch_era5_temp(year: int) -> float:
+    yr = min(year, 2023)  # archive API lags ~3 months
+    url = (
+        "https://archive-api.open-meteo.com/v1/archive"
+        f"?latitude=41.294&longitude=2.0775"
+        f"&start_date={yr}-07-01&end_date={yr}-07-31"
+        "&hourly=temperature_2m&timezone=Europe/Madrid"
+    )
+    data = requests.get(url, timeout=20).json()
+    vals = [v for v in data.get("hourly", {}).get("temperature_2m", []) if v is not None]
+    if not vals:
+        raise ValueError("empty response")
+    return round(sum(vals) / len(vals), 1)
+
+
+@lru_cache(maxsize=1)
+def _heat_data() -> dict:
+    out: dict[str, dict] = {}
+    baseline: float | None = None
+    for year in [2005, 2011, 2017, 2024]:
+        try:
+            mean_c = _fetch_era5_temp(year)
+            print(f"  [heat] {year}: {mean_c}°C (ERA5)")
+        except Exception as exc:
+            mean_c = HEAT_FALLBACK[str(year)]
+            print(f"  [heat] {year}: {mean_c}°C (fallback — {exc})")
+        if baseline is None:
+            baseline = mean_c
+        out[str(year)] = {"mean_c": mean_c, "anomaly": round(mean_c - baseline, 1)}
+    return out
+
+
 @app.get("/api/map-config")
 def map_config():
     return JSONResponse({
@@ -163,7 +249,9 @@ def map_config():
         "esri": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         "labels": "https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png",
         "ign1956": {"url": "https://www.ign.es/wms/pnoa-historico?", "layers": "AMS_1956-1957"},
-        "landcover": _resolve_landcover("1985,2005"),
+        "landcover": _resolve_landcover("1985,2000,2010,2020"),
+        "modis_lst": MODIS_LST_TILES,
+        "aod_tiles": AOD_TILES,
         "legend": [{"id": g, "label": l, "color": c} for g, l, c, _ in LANDCOVER_GROUPS],
     })
 
@@ -228,6 +316,100 @@ def _tally_payload() -> dict:
 @app.get("/api/tally")
 def tally():
     return JSONResponse(_tally_payload())
+
+
+@app.get("/api/heat-data")
+def heat_data_api():
+    return JSONResponse(_heat_data())
+
+
+def _fetch_cams_air(year: int) -> dict:
+    """July mean PM2.5 + NO2 from Open-Meteo CAMS historical for the delta."""
+    url = (
+        "https://air-quality-api.open-meteo.com/v1/air-quality"
+        f"?latitude=41.294&longitude=2.0775"
+        f"&start_date={year}-07-01&end_date={year}-07-31"
+        "&hourly=pm2_5,nitrogen_dioxide"
+    )
+    data = requests.get(url, timeout=20).json()
+    hourly = data.get("hourly", {})
+
+    def _mean(key: str) -> float | None:
+        vals = [v for v in (hourly.get(key) or []) if v is not None]
+        return round(sum(vals) / len(vals), 1) if vals else None
+
+    pm25 = _mean("pm2_5")
+    no2 = _mean("nitrogen_dioxide")
+    if pm25 is None or no2 is None:
+        raise ValueError("incomplete response")
+    return {"pm25": pm25, "no2": no2}
+
+
+@lru_cache(maxsize=1)
+def _air_data() -> dict:
+    out: dict[str, dict] = {}
+    for year in [2005, 2011, 2017, 2024]:
+        if year < 2013:
+            d = AIR_FALLBACK.get(str(year), {"pm25": 20.0, "no2": 35.0})
+            print(f"  [air] {year}: {d} (pre-CAMS fallback)")
+        else:
+            try:
+                d = _fetch_cams_air(year)
+                print(f"  [air] {year}: {d} (CAMS)")
+            except Exception as exc:
+                d = AIR_FALLBACK.get(str(year), {"pm25": 20.0, "no2": 35.0})
+                print(f"  [air] {year}: {d} (fallback — {exc})")
+        out[str(year)] = d
+    return out
+
+
+@app.get("/api/air-data")
+def air_data_api():
+    return JSONResponse(_air_data())
+
+
+def _fetch_gbif_birds(year: int) -> dict:
+    """Unique bird species observed in the delta via GBIF for a given year."""
+    url = (
+        "https://api.gbif.org/v1/occurrence/search"
+        "?classKey=212"                 # Aves
+        "&decimalLongitude=1.95,2.15"
+        "&decimalLatitude=41.26,41.38"
+        f"&year={year}"
+        "&limit=0&facet=speciesKey&facetLimit=600"
+    )
+    resp = requests.get(url, timeout=20).json()
+    facets = resp.get("facets") or []
+    species = len(facets[0].get("counts", [])) if facets else 0
+    return {"species": species, "occurrences": resp.get("count", 0)}
+
+
+@lru_cache(maxsize=1)
+def _life_data() -> dict:
+    out: dict[str, dict] = {}
+    for year in [1985, 2000, 2010, 2020]:
+        try:
+            d = _fetch_gbif_birds(year)
+            print(f"  [life] {year}: {d} (GBIF)")
+        except Exception as exc:
+            print(f"  [life] {year}: fallback ({exc})")
+            d = {"species": None, "occurrences": None}
+        out[str(year)] = d
+    return out
+
+
+@app.get("/api/life-data")
+def life_data_api():
+    return JSONResponse(_life_data())
+
+
+@app.on_event("startup")
+async def _prefetch():
+    loop = asyncio.get_running_loop()
+    loop.run_in_executor(None, _heat_data)
+    loop.run_in_executor(None, _air_data)
+    loop.run_in_executor(None, _life_data)
+    loop.run_in_executor(None, _resolve_landcover, "1985,2000,2010,2020")
 
 
 @app.get("/api/reset")

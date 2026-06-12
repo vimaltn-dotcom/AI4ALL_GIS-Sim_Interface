@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -92,7 +92,7 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 .topic.on .ico{filter:none;transform:scale(1.15)}
 
 /* timeline rail — above dock */
-#rail{position:fixed;left:50%;bottom:6.6rem;transform:translateX(-50%);z-index:30;
+#rail{position:fixed;left:50%;bottom:7.55rem;transform:translateX(-50%);z-index:30;
   display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem}
 #playBtn{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:rgba(242,243,239,.1);
   color:var(--bone);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
@@ -193,7 +193,7 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
     <h1>In 40 years the delta lost nearly <span class="big">half its wetland</span> — and the life that lived in it.</h1>
     <p>The proposed third runway would reach into Catalonia's last great wetland. Watch the ground change behind you — then decide its future.</p>
     <button class="cta" id="startBtn">Step onto the delta <span>→</span></button>
-    <div id="hookYears"><span data-y="1969">1969</span><span data-y="1985">1985</span><span data-y="2005">2005</span><span data-y="2025">2025</span></div>
+    <div id="hookYears"><span data-y="1985">1985</span><span data-y="2000">2000</span><span data-y="2010">2010</span><span data-y="2020">2020</span></div>
   </div>
 </section>
 
@@ -210,17 +210,46 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 
   <div id="rail" class="glass">
     <button id="playBtn">❚❚</button>
-    <div class="stop" data-y="1969"><div class="y">1969</div><div class="tr"><i></i></div></div>
     <div class="stop" data-y="1985"><div class="y">1985</div><div class="tr"><i></i></div></div>
-    <div class="stop" data-y="2005"><div class="y">2005</div><div class="tr"><i></i></div></div>
-    <div class="stop" data-y="2025"><div class="y">2025</div><div class="tr"><i></i></div></div>
+    <div class="stop" data-y="2000"><div class="y">2000</div><div class="tr"><i></i></div></div>
+    <div class="stop" data-y="2010"><div class="y">2010</div><div class="tr"><i></i></div></div>
+    <div class="stop" data-y="2020"><div class="y">2020</div><div class="tr"><i></i></div></div>
   </div>
 
   <div id="dock" class="glass">
-    <div class="topic on" data-tab="land"><div class="ico">🗺️</div><div class="nm">LAND</div></div>
-    <div class="topic" data-tab="temperature"><div class="ico">🌡️</div><div class="nm">HEAT</div></div>
-    <div class="topic" data-tab="pollution"><div class="ico">🌫️</div><div class="nm">AIR</div></div>
-    <div class="topic" data-tab="life"><div class="ico">🐦</div><div class="nm">LIFE</div></div>
+    <div class="topic on" data-tab="land">
+      <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5fe0b0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12,3 21,7.5 12,12 3,7.5"/>
+        <polyline points="3,12 12,16.5 21,12"/>
+        <polyline points="3,17 12,21.5 21,17"/>
+      </svg></div>
+      <div class="nm">LAND</div>
+    </div>
+    <div class="topic" data-tab="temperature">
+      <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ff6b45" stroke-width="1.8" stroke-linecap="round">
+        <circle cx="12" cy="12" r="4.5"/>
+        <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
+        <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
+        <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
+      </svg></div>
+      <div class="nm">HEAT</div>
+    </div>
+    <div class="topic" data-tab="pollution">
+      <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#78b5cc" stroke-width="1.8" stroke-linecap="round">
+        <path d="M9.59 4.59A2 2 0 1 1 11 8H2"/>
+        <path d="M12.42 19.42A2 2 0 1 0 14 16H2"/>
+        <path d="M14.73 8.27A2.5 2.5 0 1 1 17 12H2"/>
+      </svg></div>
+      <div class="nm">AIR</div>
+    </div>
+    <div class="topic" data-tab="life">
+      <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5db865" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/>
+        <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+      </svg></div>
+      <div class="nm">LIFE</div>
+    </div>
   </div>
 
   <div id="legend" class="glass"></div>
@@ -266,54 +295,72 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
   </div>
 </section>
 
+<img id="birdVid" src="/static/video/bito-comu-profile.gif" style="display:none">
+<canvas id="birdOverlay" style="position:fixed;inset:0;z-index:4;pointer-events:none;
+  width:100%;height:100%;transition:opacity 1.8s ease;opacity:0"></canvas>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/static/delta-map.js"></script>
 <script src="/static/delta-scene.js"></script>
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-let DATA=null, CFG=null, scene=null;
-const ST={stage:'hook',tab:'land',year:2025,scenario:null};
-const SEQ=[1969,1985,2005,2025], DWELL=5000, XFADE=1700;
-const YEAR_SRC={1969:'1956 AERIAL · IGN',1985:'SATELLITE · GLC 30m',2005:'SATELLITE · GLC 30m',2025:'SATELLITE · TODAY'};
+let DATA=null, CFG=null, scene=null, HEAT={}, AIR={}, LIFE={};
+const ST={stage:'hook',tab:'land',year:2020,scenario:null};
+/* LAND / LIFE: GLC_FCS30D years · HEAT / AIR: MODIS satellite years */
+const LAND_SEQ=[1985,2000,2010,2020], DATA_SEQ=[2005,2011,2017,2024];
+const DWELL=5000, XFADE=1700;
+const YEAR_SRC={1985:'SATELLITE · GLC 30m',2000:'SATELLITE · GLC 30m',2010:'SATELLITE · GLC 30m',2020:'SATELLITE · GLC 30m'};
+function activeSeq(){ return (ST.tab==='temperature'||ST.tab==='pollution')?DATA_SEQ:LAND_SEQ; }
+function updateRail(seq){
+  $$('.stop').forEach((s,i)=>{
+    s.dataset.y=seq[i]; s.querySelector('.y').textContent=seq[i];
+    s.classList.remove('active','done','paused');
+    const bar=s.querySelector('.tr i'); bar.style.animation='none'; bar.style.width='0%';
+  });
+}
 
 async function push(patch){Object.assign(ST,patch);
   try{await fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)});}catch(e){}}
 
 /* ── narrative captions per topic × year ── */
 const STORY={
-  land:{k:'LAND COVER',t:'The land itself',hero:y=>[DATA.land[y].pct_buildup+'%','of the delta is sealed under concrete & tarmac'],
-    cap:{1969:'Before the great expansion: a working delta of farms, marsh and a modest aerodrome by the sea.',
-         1985:'The airport hardens. Barcelona advances south, field by field.',
-         2005:'The third runway cuts across the wetland’s edge. Half the marsh is already gone.',
-         2025:'A sealed landscape. The delta survives only in protected fragments.'},
+  land:{k:'LAND COVER',t:'The land itself',
+    hero:y=>[DATA.land[y].pct_buildup+'%','of the delta sealed under concrete & tarmac'],
+    cap:{1985:'The starting point: a working delta of farms, marsh and a modest aerodrome by the sea.',
+         2000:'Barcelona advances south. A third of the farmland has given way to roads, logistics and terminals.',
+         2010:'The third runway is operational. Half the marsh is already gone.',
+         2020:'A sealed landscape. Wetland survives only in protected fragments between the runways.'},
     minis:y=>[['Wetland',DATA.land[y].pct_wetland+'%'],['Farmland',DATA.land[y].pct_farmland+'%']]},
-  temperature:{k:'SURFACE TEMPERATURE',t:'The heat beneath',hero:y=>['+'+DATA.temperature[y].anomaly+'°C','warming since 1969'],
-    cap:{1969:'A delta that breathes — vegetation and open water keep the land cool.',
-         1985:'First heat islands form over the runways and the new districts.',
-         2005:'Concrete absorbs the sun all day. The nights stop cooling down.',
-         2025:'Up to +4°C over sealed ground. Heat has become the city’s climate.'},
-    minis:y=>[['Mean surface',DATA.temperature[y].mean_c+'°C'],['Heat island',`+${DATA.temperature[y].uhi}°C`]]},
-  pollution:{k:'AIR QUALITY',t:'The air above',hero:y=>[DATA.pollution[y].aqi,'air quality index over the delta'],
-    cap:{1969:'Skies over the delta are still largely clean — a few thousand flights a year.',
-         1985:'Traffic multiplies. NO₂ doubles around the terminals.',
-         2005:'Peak pollution: 27 million passengers, road traffic, industry.',
-         2025:'Cleaner engines help — but the plume never really leaves.'},
-    minis:y=>[['NO₂',DATA.pollution[y].no2+' µg/m³'],['PM2.5',DATA.pollution[y].pm25+' µg/m³']]},
-  life:{k:'LIFE & BIODIVERSITY',t:'What still lives here',hero:y=>[DATA.life[y].bird_species,'bird species recorded in the delta'],
-    cap:{1969:'360 species. The delta is one of the richest habitats on the Catalan coast.',
-         1985:'Habitat splinters. The bittern’s boom grows rare in the reeds.',
-         2005:'Half the wetland gone — the bittern falls silent.',
-         2025:'121 species cling to protected fragments between the runways.'},
-    minis:y=>[['Habitat quality',DATA.life[y].habitat_quality+'%'],['Since 1969','−'+(DATA.life[1969].bird_species-DATA.life[y].bird_species)+' species']]}
+  temperature:{k:'SURFACE TEMPERATURE',t:'The heat beneath',
+    hero:y=>[HEAT[y]?'+'+HEAT[y].anomaly+'°C':'—','warming since 2005 · ERA5 reanalysis'],
+    cap:{2005:'MODIS first reveals the delta\'s heat signature: runways glow 15 °C hotter than the wetland beside them.',
+         2011:'Six years on — expanded urban areas have widened the heat island. Nights stop cooling down.',
+         2017:'The sealed footprint keeps growing. Wetland fragments struggle to offset the heat absorbed around them.',
+         2024:'Two decades of satellite data confirm a persistent heat island over the airport and the city edge.'},
+    minis:y=>[['July mean (ERA5)',HEAT[y]?HEAT[y].mean_c+' °C':'—'],['Anomaly vs 2005',HEAT[y]?'+'+HEAT[y].anomaly+' °C':'—']]},
+  pollution:{k:'AIR QUALITY',t:'The air above',
+    hero:y=>[AIR[y]?AIR[y].pm25+' µg/m³':'—','PM2.5 particle pollution · CAMS reanalysis'],
+    cap:{2005:'Peak era: 27 million passengers, road freight and construction all burning diesel across the delta.',
+         2011:'EU clean-air directives bite — engines improve, but traffic volumes keep climbing.',
+         2017:'MODIS aerosol data confirms a persistent particle plume fixed over the runways and ring roads.',
+         2024:'Cleaner aircraft and some electrification cut peaks — but the plume never fully lifts.'},
+    minis:y=>[['PM2.5',AIR[y]?AIR[y].pm25+' µg/m³':'—'],['NO₂',AIR[y]?AIR[y].no2+' µg/m³':'—']]},
+  life:{k:'LIFE & BIODIVERSITY',t:'What still lives here',
+    hero:y=>[LIFE[y]?.species??'—','bird species in GBIF records for the delta'],
+    cap:{1985:'The delta holds one of the richest coastal habitats on the Catalan coast — protected wetland interlaced with farmland.',
+         2000:'Fragmentation accelerates. Nesting sites disappear as the airport expands northward into the lagoons.',
+         2010:'The third runway bisects the last wetland corridor. GBIF records show the richest areas going silent.',
+         2020:'Only protected fragments remain. Each new impermeable surface cuts another thread of the habitat web.'},
+    minis:y=>[['Habitat quality',DATA.life[y]?.habitat_quality+'%'],['GBIF sightings',LIFE[y]?.occurrences??'—']]}
 };
 const LEGENDS={
-  temperature:[['#2c7fb8','Cool'],['#fec44f','Warm'],['#d7301f','Hot']],
+  temperature:[['#1a6faa','Cool'],['#ff6a00','Warm'],['#cc0000','Hot']],
   pollution:[['#1a9850','Cleaner'],['#fdae61','Moderate'],['#7b3294','Polluted']],
   life:[['#54d07a','Living habitat'],['#39c0e0','Water'],['rgba(255,255,255,.15)','Lost ground']]
 };
 
 /* ── gull flock (ported from MorphLayer) ── */
-const FLOCK_N={1969:24,1985:16,2005:7,2025:3};
+const FLOCK_N={1985:18,2000:12,2010:6,2020:3};
 function buildFlock(){
   const host=$('#flock');
   for(let i=0;i<26;i++){
@@ -327,10 +374,96 @@ function buildFlock(){
     host.appendChild(sp);
   }
 }
+/* ── bittern flock on map ── */
+const BITTERNS=[
+  // La Ricarda lagoon — original cluster
+  {lat:41.2768,lng:2.0688,liftT:0.12,dir: 0.45,phase:0.00},
+  {lat:41.2774,lng:2.0695,liftT:0.22,dir: 2.60,phase:0.55},
+  {lat:41.2764,lng:2.0706,liftT:0.32,dir: 1.10,phase:1.10},
+  {lat:41.2780,lng:2.0678,liftT:0.42,dir:-0.30,phase:1.65},
+  {lat:41.2772,lng:2.0715,liftT:0.54,dir: 2.00,phase:2.20},
+  // El Remolar — original cluster
+  {lat:41.2730,lng:2.0768,liftT:0.64,dir: 0.70,phase:2.75},
+  {lat:41.2738,lng:2.0758,liftT:0.72,dir: 1.80,phase:3.30},
+  {lat:41.2724,lng:2.0752,liftT:0.80,dir:-0.80,phase:3.85},
+  // Survivors (original)
+  {lat:41.2790,lng:2.0645,liftT:9.99,dir: 0.00,phase:4.40},
+  {lat:41.2785,lng:2.0658,liftT:9.99,dir: 0.00,phase:4.95},
+  // La Ricarda extended
+  {lat:41.2760,lng:2.0700,liftT:0.08,dir:-0.60,phase:5.50},
+  {lat:41.2776,lng:2.0710,liftT:0.18,dir: 1.30,phase:6.05},
+  {lat:41.2763,lng:2.0682,liftT:0.26,dir: 2.10,phase:6.60},
+  {lat:41.2779,lng:2.0722,liftT:0.38,dir:-1.00,phase:7.15},
+  {lat:41.2770,lng:2.0693,liftT:0.48,dir: 0.30,phase:7.70},
+  // El Remolar extended
+  {lat:41.2733,lng:2.0775,liftT:0.58,dir: 1.60,phase:8.25},
+  {lat:41.2720,lng:2.0760,liftT:0.68,dir:-0.50,phase:8.80},
+  {lat:41.2741,lng:2.0748,liftT:0.76,dir: 2.30,phase:9.35},
+  {lat:41.2728,lng:2.0782,liftT:0.84,dir: 0.90,phase:9.90},
+  {lat:41.2735,lng:2.0755,liftT:0.90,dir:-1.20,phase:10.45},
+  // River delta marsh
+  {lat:41.2795,lng:2.0630,liftT:0.15,dir:-0.80,phase:11.00},
+  {lat:41.2800,lng:2.0650,liftT:0.30,dir: 1.80,phase:11.55},
+  {lat:41.2788,lng:2.0620,liftT:0.46,dir: 0.60,phase:12.10},
+  {lat:41.2802,lng:2.0638,liftT:0.62,dir:-1.50,phase:12.65},
+  {lat:41.2793,lng:2.0660,liftT:0.78,dir: 2.40,phase:13.20},
+  // Stragglers
+  {lat:41.2765,lng:2.0698,liftT:0.86,dir: 1.10,phase:13.75},
+  {lat:41.2740,lng:2.0742,liftT:0.92,dir:-0.30,phase:14.30},
+  // Additional survivors
+  {lat:41.2787,lng:2.0668,liftT:9.99,dir: 0.00,phase:14.85},
+  {lat:41.2773,lng:2.0640,liftT:9.99,dir: 0.00,phase:15.40},
+  {lat:41.2730,lng:2.0762,liftT:9.99,dir: 0.00,phase:15.95},
+];
+let birdT=0, birdTTarget=0, birdAnimId=null;
+const birdVid=document.getElementById('birdVid');
+const birdOverlay=document.getElementById('birdOverlay');
+const birdOCtx=birdOverlay.getContext('2d');
+window.addEventListener('resize',()=>{birdOverlay.width=window.innerWidth;birdOverlay.height=window.innerHeight;});
+
+function drawOneBird(bird,t,now){
+  if(!scene||!scene.map||!birdVid.complete||!birdVid.naturalWidth) return;
+  const prog=Math.max(0,Math.min(1,(t-bird.liftT)/0.28));
+  const pt=scene.map.latLngToContainerPoint([bird.lat,bird.lng]);
+  const flyPx=prog*260;
+  const x=pt.x+Math.cos(bird.dir)*flyPx;
+  const y=pt.y-Math.sin(bird.dir)*flyPx-prog*90-window.innerHeight*0.20;
+  const bob=prog<0.05?Math.sin(now/900+bird.phase)*2.5:0;
+  const scale=(1-prog*0.45)*78;
+  const alpha=prog>0.72?(1-(prog-0.72)/0.28):1;
+  const tilt=-prog*(Math.PI/5.5);
+  if(alpha<=0) return;
+  const aspect=birdVid.naturalHeight/(birdVid.naturalWidth||1);
+  birdOCtx.save();
+  birdOCtx.globalAlpha=alpha;
+  birdOCtx.translate(x,y+bob);
+  birdOCtx.rotate(tilt);
+  birdOCtx.drawImage(birdVid,-scale/2,-scale*aspect/2,scale,scale*aspect);
+  birdOCtx.restore();
+}
+function birdLoop(now){
+  birdTTarget=(ST.year-1969)/56;
+  birdT+=(birdTTarget-birdT)*0.018;
+  birdOverlay.width=window.innerWidth;
+  birdOverlay.height=window.innerHeight;
+  BITTERNS.forEach(b=>drawOneBird(b,birdT,now));
+  birdAnimId=requestAnimationFrame(birdLoop);
+}
+function startBirds(){
+  if(birdAnimId) return;
+  birdOverlay.style.opacity='1';
+  birdAnimId=requestAnimationFrame(birdLoop);
+}
+function stopBirds(){
+  if(birdAnimId){cancelAnimationFrame(birdAnimId);birdAnimId=null;}
+  birdOverlay.style.opacity='0';
+}
+
 function flockFor(year,tab){
   const visible=(tab==='land'||tab==='life')&&ST.stage!=='decide';
   const n=visible?(FLOCK_N[year]??3):0;
   $$('#flock .gull').forEach((g,i)=>g.style.opacity=i<n?1:0);
+  if(tab==='life'&&ST.stage==='explore') startBirds(); else stopBirds();
 }
 
 /* ── stage switching ── */
@@ -338,7 +471,7 @@ function showStage(stage){
   ST.stage=stage;
   $$('.stage').forEach(s=>s.classList.remove('show'));
   $('#'+stage).classList.add('show');
-  if(stage==='decide'||stage==='result'){stopCycle();}
+  if(stage==='decide'||stage==='result'){stopCycle();stopBirds();}
   if(stage==='decide') $('#flock').style.opacity=0; else $('#flock').style.opacity=1;
 }
 
@@ -355,10 +488,11 @@ function setYear(year,{animate=true}={}){
   ST.year=year; push({year});
   scene.setView({tab:ST.tab,year,stage:'explore'},{animate,ms:XFADE});
   setGhost(year); flockFor(year,ST.tab); paintStory(year);
+  const seq=activeSeq();
   $$('.stop').forEach(s=>{
-    const y=+s.dataset.y, i=SEQ.indexOf(y);
+    const y=+s.dataset.y, i=seq.indexOf(y);
     s.classList.toggle('active',y===year);
-    s.classList.toggle('done',i<SEQ.indexOf(year)||(!playing&&y===year));
+    s.classList.toggle('done',i<seq.indexOf(year)||(!playing&&y===year));
     s.classList.toggle('paused',!playing);
     if(y===year){const bar=s.querySelector('.tr i');bar.style.animation='none';void bar.offsetWidth;
       bar.style.animation='';s.style.setProperty('--dwell',DWELL+'ms');}
@@ -369,10 +503,11 @@ function startCycle(from=0){
   stepCycle();
 }
 function stepCycle(){
-  setYear(SEQ[cycleIdx]);
+  const seq=activeSeq();
+  setYear(seq[cycleIdx]);
   cycleTimer=setTimeout(()=>{
     cycleIdx++;
-    if(cycleIdx<SEQ.length) stepCycle();
+    if(cycleIdx<seq.length) stepCycle();
     else { playing=false; $('#playBtn').textContent='▶'; cycledOnce=true; $('#decideFab').classList.add('on');
            $$('.stop').forEach(s=>s.classList.add('done')); }
   },DWELL);
@@ -389,14 +524,7 @@ function paintStory(year){
   const [v,l]=s.hero(year); $('#hsV').textContent=v; $('#hsL').textContent=l;
   $('#hsV').style.color=(ST.tab==='life')?'var(--protect)':(ST.tab==='temperature'?'var(--rust)':'var(--bone)');
   $('#miniStats').innerHTML=s.minis(year).map(([k,val])=>`<div class="m"><div class="v mono">${val}</div><div class="l">${k}</div></div>`).join('');
-  const sl=$('#spList');
-  if(ST.tab==='life'){ sl.classList.add('on');
-    sl.innerHTML=DATA.species.map(sp=>{
-      const v=sp.curve[year]??0, pct=Math.round(v*100);
-      const col=v>0.6?'var(--protect)':v>0.3?'var(--balance)':'var(--expand)';
-      return `<div class="sp"><div class="n">${sp.name}</div><div class="b"><i style="width:${pct}%;background:${col}"></i></div><div class="p mono">${pct}%</div></div>`;
-    }).join('');
-  } else sl.classList.remove('on');
+  $('#spList').classList.remove('on');
   paintLegend();
 }
 function paintLegend(){
@@ -434,7 +562,7 @@ function paintTally(t){
 let hookTimer=null, hookIdx=3;
 function startHookLoop(){
   stopHookLoop();
-  const tick=()=>{ hookIdx=(hookIdx+1)%SEQ.length; const y=SEQ[hookIdx];
+  const tick=()=>{ hookIdx=(hookIdx+1)%LAND_SEQ.length; const y=LAND_SEQ[hookIdx];
     scene.setView({tab:'land',year:y,stage:'explore'},{ms:2400});
     setGhost(y); flockFor(y,'land');
     $$('#hookYears span').forEach(s=>s.classList.toggle('on',+s.dataset.y===y)); };
@@ -445,16 +573,16 @@ function stopHookLoop(){ if(hookTimer){clearInterval(hookTimer);hookTimer=null;}
 /* ── bindings ── */
 function bind(){
   $('#startBtn').onclick=()=>{ stopHookLoop(); push({stage:'explore',tab:'land'}); showStage('explore');
-    syncTopics(); startCycle(0); };
+    syncTopics(); updateRail(activeSeq()); startCycle(0); };
   $$('.topic').forEach(t=>t.onclick=()=>{ if(ST.tab===t.dataset.tab&&playing)return;
-    push({tab:t.dataset.tab}); syncTopics(); startCycle(0); });
+    push({tab:t.dataset.tab}); syncTopics(); updateRail(activeSeq()); startCycle(0); });
   $$('.stop').forEach(s=>s.onclick=()=>{ stopCycle(); setYear(+s.dataset.y); });
-  $('#playBtn').onclick=()=>{ if(playing) stopCycle(); else startCycle(Math.max(0,SEQ.indexOf(ST.year))); };
+  $('#playBtn').onclick=()=>{ if(playing) stopCycle(); else startCycle(Math.max(0,activeSeq().indexOf(ST.year))); };
   $('#decideFab').onclick=()=>{ push({stage:'decide'}); showStage('decide'); };
   $$('.choice').forEach(ch=>ch.onclick=()=>choose(ch.dataset.c));
-  $('#restart').onclick=()=>{ push({stage:'hook',scenario:null,tab:'land',year:2025});
-    Object.assign(ST,{tab:'land',year:2025}); cycledOnce=false; $('#decideFab').classList.remove('on');
-    scene.setView({tab:'land',year:2025,stage:'explore'},{ms:1800}); showStage('hook'); startHookLoop(); };
+  $('#restart').onclick=()=>{ push({stage:'hook',scenario:null,tab:'land',year:2020});
+    Object.assign(ST,{tab:'land',year:2020}); cycledOnce=false; $('#decideFab').classList.remove('on');
+    scene.setView({tab:'land',year:2020,stage:'explore'},{ms:1800}); showStage('hook'); startHookLoop(); };
   window.addEventListener('resize',()=>{scene&&scene.invalidate();});
 }
 function syncTopics(){ $$('.topic').forEach(t=>t.classList.toggle('on',t.dataset.tab===ST.tab)); }
@@ -472,7 +600,10 @@ function listenStream(){
 (async function(){
   DATA=await (await fetch('/api/indicators')).json();
   CFG=await (await fetch('/api/map-config')).json();
-  scene=new DeltaScene('map',CFG,{interactive:false});
+  HEAT=await (await fetch('/api/heat-data')).json().catch(()=>({}));
+  AIR=await (await fetch('/api/air-data')).json().catch(()=>({}));
+  LIFE=await (await fetch('/api/life-data')).json().catch(()=>({}));
+  scene=new DeltaScene('map',CFG,{interactive:false,heat:HEAT});
   setTimeout(()=>{scene.invalidate();scene.fitDelta(0);},90);
   buildFlock(); bind(); fillChoiceMetrics(); showStage('hook'); startHookLoop(); listenStream();
 })();

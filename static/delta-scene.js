@@ -27,7 +27,10 @@
   const GRADES = {
     y1969: { sepia: 0.45, sat: 0.92, bri: 1.04, con: 1.00 },
     y1985: { sepia: 0.22, sat: 0.94, bri: 1.00, con: 1.03 },
+    y2000: { sepia: 0.14, sat: 0.95, bri: 0.99, con: 1.05 },
     y2005: { sepia: 0.08, sat: 0.96, bri: 0.98, con: 1.06 },
+    y2010: { sepia: 0.04, sat: 0.94, bri: 0.97, con: 1.07 },
+    y2020: { sepia: 0.00, sat: 0.90, bri: 0.96, con: 1.09 },
     y2025: { sepia: 0.00, sat: 0.88, bri: 0.95, con: 1.10 },
     field: { sepia: 0.00, sat: 0.95, bri: 0.97, con: 1.05 },
     expand:  { sepia: 0.0, sat: 0.62, bri: 0.90, con: 1.16 },
@@ -69,11 +72,28 @@
           this._L['lc' + yr] = L.tileLayer(cfg.landcover[yr], { maxZoom: 19, opacity: 0, zIndex: 450 }).addTo(map);
         }
       }
+      // MODIS Terra Land Surface Temperature Day tiles (NASA GIBS, 1 km)
+      if (cfg.modis_lst) {
+        for (const yr of Object.keys(cfg.modis_lst)) {
+          this._L['modis' + yr] = L.tileLayer(cfg.modis_lst[yr], {
+            maxZoom: 19, maxNativeZoom: 7, opacity: 0, zIndex: 530, errorTileUrl: BLANK,
+          }).addTo(map);
+        }
+      }
+      // MODIS Terra Aerosol Optical Depth tiles — particle pollution proxy (NASA GIBS)
+      if (cfg.aod_tiles) {
+        for (const yr of Object.keys(cfg.aod_tiles)) {
+          this._L['aod' + yr] = L.tileLayer(cfg.aod_tiles[yr], {
+            maxZoom: 19, maxNativeZoom: 7, opacity: 0, zIndex: 525, errorTileUrl: BLANK,
+          }).addTo(map);
+        }
+      }
       this._op = {};                 // current opacity per key
       for (const k of Object.keys(this._L)) this._op[k] = 0;
       this._grade = { ...yearGrade(2025) };
       this._fActive = 'fB';          // slot holding the visible field
       this._raf = 0;
+      this._heat = opts.heat || {};
 
       // offscreen renderer for modelled fields
       const oc = document.createElement('canvas'); oc.width = 600; oc.height = 600;
@@ -151,8 +171,28 @@
         return;
       }
 
-      // temperature / pollution / life → modelled field over the satellite
-      const slot = this._stageField({ layer: tab, year });
+      // temperature → MODIS LST satellite tiles (2005/2011/2017/2024)
+      // + a progressive heat-field overlay that deepens red for later years
+      if (tab === 'temperature' && this._L['modis' + year]) {
+        targets['modis' + year] = 0.85;
+        const HEAT_OVERLAY = { 2005: 0.0, 2011: 0.18, 2017: 0.30, 2024: 0.46 };
+        const overlayOp = HEAT_OVERLAY[year] ?? 0;
+        if (overlayOp > 0) {
+          const anomaly = this._heat[year]?.anomaly ?? null;
+          const slot = this._stageField({ layer: 'temperature', year, anomaly });
+          targets[slot] = overlayOp;
+        }
+        this._tween(targets, GRADES.field, ms);
+        return;
+      }
+      // pollution → MODIS AOD satellite tiles (2005/2011/2017/2024)
+      if (tab === 'pollution' && this._L['aod' + year]) {
+        targets['aod' + year] = 0.78;
+        this._tween(targets, GRADES.field, ms);
+        return;
+      }
+      const anomaly = tab === 'temperature' ? (this._heat[year]?.anomaly ?? null) : null;
+      const slot = this._stageField({ layer: tab, year, anomaly });
       targets[slot] = 0.92;
       this._tween(targets, GRADES.field, ms);
     }

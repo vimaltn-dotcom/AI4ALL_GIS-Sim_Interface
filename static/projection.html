@@ -181,7 +181,8 @@ addEventListener('resize',()=>{if(scene){scene.invalidate();scene.fitDelta(0);}}
 (async function(){
   DATA=await (await fetch('/api/indicators')).json();
   CFG=await (await fetch('/api/map-config')).json();
-  scene=new DeltaScene('projMap',CFG,{interactive:false});
+  const HEAT=await (await fetch('/api/heat-data')).json().catch(()=>({}));
+  scene=new DeltaScene('projMap',CFG,{interactive:false,heat:HEAT});
   setTimeout(()=>{scene.invalidate();scene.fitDelta(0);},90);
   buildFlock();
   try{const st=await (await fetch('/api/state')).json();Object.assign(ST,st);}catch(e){}
