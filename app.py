@@ -373,6 +373,61 @@ def air_data_api():
     return JSONResponse(_air_data())
 
 
+# ─────────────────────────────────────────────────────────────
+# Live flight data — OpenSky Network (anonymous, no auth needed)
+# Bounding box covers the BCN/LEBL approach + departure sectors.
+# Server-side 30-second cache to stay within rate limits.
+# ─────────────────────────────────────────────────────────────
+_OPENSKY_URL = (
+    "https://opensky-network.org/api/states/all"
+    "?lamin=40.90&lomin=1.50&lamax=41.70&lomax=2.70"
+)
+_FLIGHTS_TTL = 30  # seconds
+_flights_cache: dict = {"data": None, "ts": 0.0}
+
+
+@app.get("/api/flights")
+def flights_api():
+    """Proxy live aircraft positions from OpenSky Network around El Prat (LEBL)."""
+    global _flights_cache
+    now = time.time()
+    if _flights_cache["data"] is not None and now - _flights_cache["ts"] < _FLIGHTS_TTL:
+        return JSONResponse(_flights_cache["data"])
+    try:
+        resp = requests.get(_OPENSKY_URL, timeout=12)
+        raw = resp.json()
+        planes = []
+        for s in (raw.get("states") or []):
+            lon, lat = s[5], s[6]
+            if lon is None or lat is None:
+                continue
+            on_ground = s[8] is True
+            alt = s[7] or 0
+            if on_ground or alt < 300:   # skip taxiing / parked aircraft
+                continue
+            planes.append({
+                "icao": s[0],
+                "call": (s[1] or "").strip(),
+                "lng":  round(lon, 5),
+                "lat":  round(lat, 5),
+                "alt":  round(alt),
+                "vel":  round(s[9] or 220),   # m/s, default cruise if null
+                "hdg":  round(s[10] or 0),    # true track degrees
+            })
+        result = {
+            "ok": True,
+            "ts": raw.get("time", int(now)),
+            "count": len(planes),
+            "planes": planes,
+        }
+        _flights_cache = {"data": result, "ts": now}
+        return JSONResponse(result)
+    except Exception as exc:
+        fallback = _flights_cache["data"] or {"ok": False, "planes": [], "count": 0}
+        fallback["error"] = str(exc)
+        return JSONResponse(fallback)
+
+
 def _fetch_gbif_birds(year: int) -> dict:
     """Unique bird species observed in the delta via GBIF for a given year."""
     url = (

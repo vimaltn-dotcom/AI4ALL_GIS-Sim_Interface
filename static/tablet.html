@@ -443,35 +443,62 @@ function stopBirds(){
   birdOverlay.style.opacity='0';
 }
 
-/* ── FLIGHT SIMULATION (air traffic tab) ──
-   El Prat (LEBL) runways: 07L/25R and 07R/25L, heading ~073°/253° magnetic.
-   25R = land facing WSW (253°), approach from ENE over the Mediterranean.
-   07L = land facing ENE (073°), approach from WSW (rare, east-wind ops).
-   Threshold 25R at ~41.300°N 2.100°E; threshold 07L at ~41.295°N 2.076°E.  ── */
+/* ── FLIGHT SIMULATION + LIVE LAYER (air traffic tab) ──
+   Simulation: weighted routes across all real BCN traffic flows.
+   Live layer: OpenSky Network proxy (/api/flights), refreshed every 28 s.
+   Runway 25R (most used): approach from ENE heading ~253°.
+   Runway 07L/07R departure: climb ENE heading ~073°.
+   w = relative frequency weight for weighted spawning.            ── */
 const ROUTES=[
-  // ILS 25R approach — ENE over sea, heading 253° (most used)
-  {type:'arr',glow:'#00ccff',pts:[[41.342,2.338],[41.320,2.218],[41.300,2.100]]},
-  // ILS 25L approach — parallel runway, slightly south track
-  {type:'arr',glow:'#00ccff',pts:[[41.338,2.334],[41.316,2.214],[41.297,2.096]]},
-  // RNAV curved arrival from SE (southern arc over the sea)
-  {type:'arr',glow:'#00ccff',pts:[[41.250,2.252],[41.272,2.176],[41.297,2.094]]},
-  // SID 07L departure — climbing ENE to BCN VOR then north coast
-  {type:'dep',glow:'#ffaa44',pts:[[41.300,2.100],[41.320,2.220],[41.348,2.362]]},
-  // SID 07R departure — ENE, curves slightly south of 07L track
-  {type:'dep',glow:'#ffaa44',pts:[[41.297,2.096],[41.314,2.208],[41.336,2.348]]},
-  // 25R departure westbound over sea (tail-wind ops)
-  {type:'dep',glow:'#ffaa44',pts:[[41.296,2.080],[41.278,1.934],[41.258,1.774]]},
+  // ── ARRIVALS ─ aim at 25R threshold ~41.299°N 2.097°E ─────────
+  // N.Europe (London/Paris/AMS/FRA) – LORES STAR, ENE over sea  w:5
+  {type:'arr',glow:'#00ccff',w:5,pts:[[41.385,2.252],[41.338,2.178],[41.299,2.097]]},
+  // Med-West (Rome/Milan/Madrid/Palma) – from E over sea          w:3
+  {type:'arr',glow:'#00ccff',w:3,pts:[[41.308,2.278],[41.303,2.192],[41.299,2.097]]},
+  // Med-East (Athens/Istanbul/Tel Aviv) – from ESE                w:2
+  {type:'arr',glow:'#00ccff',w:2,pts:[[41.242,2.262],[41.268,2.182],[41.296,2.093]]},
+  // N.Africa / M.East (Cairo/Dubai/Casablanca) – arc from SSE     w:2
+  {type:'arr',glow:'#00ccff',w:2,pts:[[41.198,2.188],[41.240,2.145],[41.293,2.090]]},
+  // Canary Islands / W.Africa – arc from SSW                      w:1
+  {type:'arr',glow:'#00ccff',w:1,pts:[[41.208,2.040],[41.250,2.068],[41.294,2.090]]},
+  // Americas / Lisbon (07R east-wind ops) – from W                w:2
+  {type:'arr',glow:'#00ccff',w:2,pts:[[41.283,1.855],[41.289,1.978],[41.294,2.075]]},
+  // N.Spain (Bilbao/VGO) – STAR from NW                          w:1
+  {type:'arr',glow:'#00ccff',w:1,pts:[[41.390,2.005],[41.352,2.042],[41.300,2.088]]},
+
+  // ── DEPARTURES ─ from 07L threshold ~41.299°N 2.097°E ─────────
+  // N.Europe SID – main track ENE, LORES waypoint                w:5
+  {type:'dep',glow:'#ffaa44',w:5,pts:[[41.299,2.097],[41.332,2.195],[41.372,2.302]]},
+  // Med-East / M.East SID – ENE then curving slightly south      w:3
+  {type:'dep',glow:'#ffaa44',w:3,pts:[[41.297,2.093],[41.314,2.182],[41.335,2.280]]},
+  // N.Spain / France SID – climb then turn N                     w:1
+  {type:'dep',glow:'#ffaa44',w:1,pts:[[41.299,2.095],[41.350,2.108],[41.395,2.118]]},
+  // Madrid / W.Spain SID – NW track                              w:2
+  {type:'dep',glow:'#ffaa44',w:2,pts:[[41.298,2.088],[41.332,2.022],[41.370,1.948]]},
+  // Canary Islands / Sub-Saharan – SSW departure                 w:2
+  {type:'dep',glow:'#ffaa44',w:2,pts:[[41.295,2.082],[41.252,2.060],[41.206,2.040]]},
+  // Americas long-haul – 25R westbound overwater departure       w:1
+  {type:'dep',glow:'#ffaa44',w:1,pts:[[41.295,2.076],[41.272,1.938],[41.246,1.786]]},
+  // N.Africa via SE coast (Algiers/Tunis) – SE departure         w:1
+  {type:'dep',glow:'#ffaa44',w:1,pts:[[41.296,2.090],[41.260,2.146],[41.218,2.202]]},
 ];
+const _ROUTE_W=ROUTES.reduce((s,r)=>s+r.w,0);
+
 function _catmull(p0,p1,p2,p3,t){
   return 0.5*(2*p1+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t*t+(-p0+3*p1-3*p2+p3)*t*t*t);
 }
 function _routePt(pts,t){
-  const n=pts.length-1,seg=Math.min(Math.floor(t*n),n-1),st=t*n-seg;
-  const i=seg;
+  const n=pts.length-1,seg=Math.min(Math.floor(t*n),n-1),st=t*n-seg,i=seg;
   const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[Math.min(n,i+1)],p3=pts[Math.min(n,i+2)];
   return [_catmull(p0[0],p1[0],p2[0],p3[0],st),_catmull(p0[1],p1[1],p2[1],p3[1],st)];
 }
-let flights=[],flightCanvas=null,flightCtx=null,flightRaf=null;
+
+/* simulated flights */
+let flights=[];
+/* live aircraft from OpenSky */
+let liveAc=[], _liveIntervalId=null;
+
+let flightCanvas=null,flightCtx=null,flightRaf=null;
 function initFlightCanvas(){
   flightCanvas=document.createElement('canvas');
   Object.assign(flightCanvas.style,{position:'fixed',inset:'0',zIndex:'5',
@@ -480,31 +507,76 @@ function initFlightCanvas(){
   document.body.appendChild(flightCanvas);
   flightCtx=flightCanvas.getContext('2d');
 }
+
+/* weighted spawn across all route categories */
 function _spawnFlight(){
-  const ri=Math.floor(Math.random()*ROUTES.length);
-  // stagger arrivals vs departures
-  flights.push({ri,t:0,trail:[],alpha:0,speed:0.00075+Math.random()*0.0003});
+  let rand=Math.random()*_ROUTE_W,cumW=0;
+  for(let i=0;i<ROUTES.length;i++){
+    cumW+=ROUTES[i].w;
+    if(rand<cumW){
+      flights.push({ri:i,t:0,trail:[],alpha:0,speed:0.00072+Math.random()*0.00030});
+      return;
+    }
+  }
 }
+
+/* fetch live aircraft from server-side OpenSky proxy */
+async function _fetchLive(){
+  try{
+    const d=await(await fetch('/api/flights')).json();
+    if(!d.ok||!d.planes?.length) return;
+    const ageMs=Math.max(0,Date.now()-d.ts*1000);
+    const prev={};
+    for(const a of liveAc) prev[a.icao]=a;
+    liveAc=d.planes.map(p=>{
+      const hr=p.hdg*Math.PI/180;
+      const cosLat=Math.cos(p.lat*Math.PI/180);
+      const dt=ageMs/1000;
+      // dead-reckon from API timestamp to now at actual speed
+      const cLat=p.lat+p.vel*dt*Math.cos(hr)/111300;
+      const cLng=p.lng+p.vel*dt*Math.sin(hr)/(111300*cosLat);
+      return{icao:p.icao,call:(p.call||'').replace(/\s/g,''),
+        vLat:cLat,vLng:cLng,hdg:p.hdg,vel:p.vel,
+        alpha:prev[p.icao]?.alpha??0};
+    });
+  }catch(e){}
+}
+
+function _drawPlane(ctx,s,glow){
+  ctx.shadowBlur=10; ctx.shadowColor=glow;
+  ctx.fillStyle='rgba(255,255,255,0.97)';
+  ctx.beginPath(); ctx.ellipse(0,0,s*0.28,s,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-s*1.38,s*0.08); ctx.lineTo(s*1.38,s*0.08);
+  ctx.lineTo(s*0.72,s*0.44); ctx.lineTo(-s*0.72,s*0.44);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-s*0.50,s*0.80); ctx.lineTo(s*0.50,s*0.80);
+  ctx.lineTo(s*0.20,s*0.34); ctx.lineTo(-s*0.20,s*0.34);
+  ctx.closePath(); ctx.fill();
+}
+
 function _drawFlights(){
   if(!scene||!scene.map||!flightCtx) return;
   const W=window.innerWidth,H=window.innerHeight;
   flightCanvas.width=W; flightCanvas.height=H;
   const td=TRAFFIC_DATA[ST.year]||TRAFFIC_DATA[2005];
-  const want=Math.max(3,Math.round(td.flights_day/95));
-  if(flights.length<want&&Math.random()<0.05) _spawnFlight();
+  const want=Math.max(5,Math.round(td.flights_day/62));
+  if(flights.length<want&&Math.random()<0.055) _spawnFlight();
 
-  // Noise/pollution haze bloom around airport
+  // Exhaust/noise haze around airport, scaled by traffic volume
   const aPos=scene.map.latLngToContainerPoint([41.2971,2.0785]);
-  const hr=60+(td.flights_day/921)*110;
+  const hr=65+(td.flights_day/921)*115;
   const hg=flightCtx.createRadialGradient(aPos.x,aPos.y,8,aPos.x,aPos.y,hr);
-  hg.addColorStop(0,'rgba(200,155,70,0.20)');
+  hg.addColorStop(0,'rgba(200,155,70,0.22)');
   hg.addColorStop(0.5,'rgba(200,155,70,0.08)');
   hg.addColorStop(1,'rgba(200,155,70,0)');
   flightCtx.fillStyle=hg; flightCtx.fillRect(0,0,W,H);
 
+  /* ── Simulated flights (historical density) ── */
   flights=flights.filter(f=>{
     f.t+=f.speed;
-    if(f.t>0.12&&f.alpha<1) f.alpha=Math.min(1,f.alpha+0.05);
+    if(f.t>0.10&&f.alpha<1) f.alpha=Math.min(1,f.alpha+0.05);
     if(f.t>0.88) f.alpha=Math.max(0,f.alpha-0.06);
     if(f.t>=1) return false;
     const rt=ROUTES[f.ri];
@@ -512,67 +584,94 @@ function _drawFlights(){
     const pt=scene.map.latLngToContainerPoint([lat,lng]);
     f.trail.push({x:pt.x,y:pt.y});
     if(f.trail.length>14) f.trail.shift();
-    // direction
-    const [la2,ln2]=_routePt(rt.pts,Math.min(1,f.t+0.012));
+    const [la2,ln2]=_routePt(rt.pts,Math.min(1,f.t+0.013));
     const pt2=scene.map.latLngToContainerPoint([la2,ln2]);
     const ang=Math.atan2(pt2.y-pt.y,pt2.x-pt.x);
-    // contrail — white with glow, clearly visible on satellite
+    // contrail
     if(f.trail.length>2){
       flightCtx.save();
-      flightCtx.globalAlpha=f.alpha;
-      flightCtx.shadowBlur=5; flightCtx.shadowColor=rt.glow;
+      flightCtx.globalAlpha=f.alpha*0.55;
+      flightCtx.shadowBlur=4; flightCtx.shadowColor=rt.glow;
       flightCtx.beginPath();
       flightCtx.moveTo(f.trail[0].x,f.trail[0].y);
       for(const p of f.trail) flightCtx.lineTo(p.x,p.y);
-      flightCtx.strokeStyle='rgba(255,255,255,0.5)';
-      flightCtx.lineWidth=2; flightCtx.stroke();
+      flightCtx.strokeStyle='rgba(255,255,255,0.55)';
+      flightCtx.lineWidth=1.8; flightCtx.stroke();
       flightCtx.restore();
     }
-    // plane icon — white fill, coloured glow so visible on any satellite texture
-    const s=8;
     flightCtx.save();
     flightCtx.globalAlpha=f.alpha;
     flightCtx.translate(pt.x,pt.y);
     flightCtx.rotate(ang);
-    flightCtx.shadowBlur=10; flightCtx.shadowColor=rt.glow;
-    flightCtx.fillStyle='rgba(255,255,255,0.96)';
-    // fuselage
-    flightCtx.beginPath();
-    flightCtx.ellipse(0,0,s*0.28,s,0,0,Math.PI*2);
-    flightCtx.fill();
-    // wings
-    flightCtx.beginPath();
-    flightCtx.moveTo(-s*1.35,s*0.08);
-    flightCtx.lineTo(s*1.35,s*0.08);
-    flightCtx.lineTo(s*0.72,s*0.44);
-    flightCtx.lineTo(-s*0.72,s*0.44);
-    flightCtx.closePath(); flightCtx.fill();
-    // tail
-    flightCtx.beginPath();
-    flightCtx.moveTo(-s*0.50,s*0.80);
-    flightCtx.lineTo(s*0.50,s*0.80);
-    flightCtx.lineTo(s*0.20,s*0.34);
-    flightCtx.lineTo(-s*0.20,s*0.34);
-    flightCtx.closePath(); flightCtx.fill();
+    _drawPlane(flightCtx,8,rt.glow);
     flightCtx.restore();
     return true;
   });
+
+  /* ── Live aircraft (OpenSky – actual positions & headings) ── */
+  const VIS_MUL=5; // visual speed ×5 real for animation interest
+  liveAc=liveAc.filter(ac=>{
+    const hdgRad=ac.hdg*Math.PI/180;
+    const cosLat=Math.cos(ac.vLat*Math.PI/180);
+    const spd=ac.vel*VIS_MUL/111300/60;
+    ac.vLat+=spd*Math.cos(hdgRad);
+    ac.vLng+=spd*Math.sin(hdgRad)/cosLat;
+    ac.alpha=Math.min(1,ac.alpha+0.025);
+    const pt=scene.map.latLngToContainerPoint([ac.vLat,ac.vLng]);
+    if(pt.x<-90||pt.x>W+90||pt.y<-90||pt.y>H+90) return false;
+    // heading → canvas angle: 0°N = -90° canvas
+    const ang=ac.hdg*Math.PI/180-Math.PI/2;
+    flightCtx.save();
+    flightCtx.globalAlpha=ac.alpha;
+    flightCtx.translate(pt.x,pt.y);
+    flightCtx.rotate(ang);
+    _drawPlane(flightCtx,10,'#ffffff');
+    // callsign (rotate back to screen-space)
+    if(ac.call){
+      flightCtx.shadowBlur=5; flightCtx.shadowColor='rgba(0,0,0,0.8)';
+      flightCtx.rotate(-ang);
+      flightCtx.fillStyle='rgba(255,255,255,0.95)';
+      flightCtx.font='bold 8px monospace';
+      flightCtx.textAlign='center';
+      flightCtx.fillText(ac.call,0,-14);
+    }
+    flightCtx.restore();
+    return true;
+  });
+
+  /* live badge */
+  if(liveAc.length){
+    const label='● LIVE  '+liveAc.length+' ac';
+    flightCtx.save();
+    flightCtx.fillStyle='rgba(0,0,0,0.60)';
+    flightCtx.fillRect(W-144,10,132,22);
+    flightCtx.fillStyle='#00ccff';
+    flightCtx.font='bold 10px Space Mono,monospace';
+    flightCtx.textAlign='left';
+    flightCtx.fillText(label,W-137,25);
+    flightCtx.restore();
+  }
+
   if(ST.tab==='pollution'&&ST.stage==='explore'){
     flightRaf=requestAnimationFrame(_drawFlights);
   } else {
     flightRaf=null;
   }
 }
+
 function startFlights(){
   if(flightRaf) return;
   flights=[];
   flightCanvas.style.opacity='1';
+  _fetchLive();
+  _liveIntervalId=setInterval(_fetchLive,28000);
   flightRaf=requestAnimationFrame(_drawFlights);
 }
 function stopFlights(){
   if(flightRaf){cancelAnimationFrame(flightRaf);flightRaf=null;}
+  if(_liveIntervalId){clearInterval(_liveIntervalId);_liveIntervalId=null;}
   if(flightCanvas) flightCanvas.style.opacity='0';
-  setTimeout(()=>{flights=[];},1800);
+  setTimeout(()=>{flights=[];liveAc=[];},1800);
 }
 
 function flockFor(year,tab){
