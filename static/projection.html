@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Ground Beneath Growth — Projection</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#000;overflow:hidden;cursor:none;font-family:'Archivo',sans-serif;color:#f2f3ef}
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+/* centred square that registers onto the engraved model — press G for grid */
+#mapBox{position:relative;width:min(100vw,100vh);height:min(100vw,100vh)}
+#projMap{width:100%;height:100%}
+.leaflet-container{background:#0a1216}
+#vig{position:absolute;inset:0;z-index:600;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 46%,transparent 46%,rgba(0,0,0,.6) 100%)}
+
+/* gull flock */
+#flock{position:absolute;inset:0;z-index:650;pointer-events:none}
+.gull{position:absolute;animation:drift linear infinite alternate;transition:opacity 1.5s}
+@keyframes drift{from{transform:translate(0,0)}to{transform:translate(38px,-14px)}}
+.gull svg path{animation:flap ease-in-out infinite alternate}
+@keyframes flap{from{d:path("M1 7 Q6 1 12 6 Q18 1 23 7")}to{d:path("M1 4 Q6 9 12 5 Q18 9 23 4")}}
+
+/* ghost year */
+#ghost{position:absolute;right:4vmin;top:8vmin;z-index:700;text-align:right;pointer-events:none;transition:opacity .8s;opacity:0}
+#ghost.on{opacity:1}
+#ghost .n{font-family:'Space Mono';font-weight:700;font-size:13vmin;line-height:1;letter-spacing:-.04em;
+  color:transparent;-webkit-text-stroke:2px rgba(242,243,239,.4);text-shadow:0 0 40px rgba(0,0,0,.6)}
+#ghost .s{font-family:'Space Mono';font-size:1.6vmin;letter-spacing:.3em;color:rgba(242,243,239,.75);margin-top:1vmin}
+
+#hud{position:absolute;left:0;right:0;bottom:0;padding:2.6vmin 3.2vmin;display:flex;justify-content:space-between;align-items:flex-end;
+  background:linear-gradient(to top,rgba(0,0,0,.85),transparent);pointer-events:none;z-index:800;transition:opacity .5s}
+#hud .k{font-family:'Space Mono';letter-spacing:.32em;font-size:1.5vmin;color:#5fe0b0}
+#hud .big{font-size:4.6vmin;font-weight:900;line-height:1.05;margin-top:.5vmin;text-shadow:0 2px 16px #000}
+#hud .lede{font-size:1.9vmin;color:#cfe0e4;max-width:52vmin;margin-top:.8vmin;line-height:1.45;text-shadow:0 1px 8px #000}
+#hud .hero{text-align:right}
+#hud .hero .v{font-family:'Space Mono';font-weight:700;font-size:5.4vmin;line-height:1;text-shadow:0 2px 14px #000}
+#hud .hero .l{font-size:1.7vmin;color:#cfe0e4;margin-top:.6vmin;max-width:30vmin}
+
+#legend{position:absolute;top:3vmin;left:3vmin;display:flex;flex-direction:column;gap:1vmin;z-index:800;
+  background:rgba(0,0,0,.5);padding:1.6vmin;border-radius:1.4vmin;backdrop-filter:blur(8px);transition:opacity .5s}
+#legend .li{display:flex;align-items:center;gap:1vmin;font-size:1.7vmin;color:#e6edee}
+#legend .li i{width:2vmin;height:2vmin;border-radius:.4vmin;box-shadow:0 0 0 1px rgba(255,255,255,.3)}
+
+#idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:900;
+  background:radial-gradient(circle at 50% 42%,rgba(0,0,0,.3),rgba(0,0,0,.8));transition:opacity .8s}
+#idle.off{opacity:0;pointer-events:none}
+#idle .k{font-family:'Space Mono';letter-spacing:.45em;color:#5fe0b0;font-size:1.9vmin;margin-bottom:2.2vmin}
+#idle h1{font-size:7.4vmin;font-weight:900;max-width:82vmin;line-height:1.03;text-shadow:0 4px 26px #000}
+#idle .big{background:linear-gradient(90deg,#ff6b45,#e8b54a);-webkit-background-clip:text;background-clip:text;color:transparent}
+#idle p{color:#cfe0e4;font-size:2.3vmin;margin-top:2.6vmin;letter-spacing:.06em}
+#idle .yr{font-family:'Space Mono';font-size:2.6vmin;color:rgba(242,243,239,.65);margin-top:3.4vmin;letter-spacing:.2em}
+
+#grid{position:absolute;inset:0;display:none;z-index:950;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.3) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.3) 1px,transparent 1px);background-size:5% 5%}
+#grid.on{display:block}
+#grid::after{content:"REGISTRATION — press G";position:absolute;top:1vmin;left:1vmin;font-family:'Space Mono';font-size:1.5vmin;color:#fff}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="mapBox">
+    <div id="projMap"></div>
+    <div id="vig"></div>
+    <div id="flock"></div>
+    <div id="ghost"><div class="n" id="gN">2025</div><div class="s" id="gS"></div></div>
+    <div id="legend"></div>
+    <div id="grid"></div>
+    <div id="idle">
+      <div class="k">LLOBREGAT DELTA · BARCELONA–EL PRAT</div>
+      <h1>The ground beneath <span class="big">growth</span>.</h1>
+      <p>STEP UP TO THE TABLE</p>
+      <div class="yr mono" id="idleYr">1969 — 2025</div>
+    </div>
+    <div id="hud">
+      <div class="l"><div class="k" id="hudK"></div><div class="big" id="hudBig"></div><div class="lede" id="hudLede"></div></div>
+      <div class="hero"><div class="v" id="heroV"></div><div class="l" id="heroL"></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/static/delta-map.js"></script>
+<script src="/static/delta-scene.js"></script>
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+let CFG=null, DATA=null, scene=null;
+const ST={stage:'hook',tab:'land',year:2025,scenario:null};
+const SEQ=[1969,1985,2005,2025];
+const YEAR_SRC={1969:'1956 AERIAL · IGN',1985:'SATELLITE · GLC 30m',2005:'SATELLITE · GLC 30m',2025:'SATELLITE · TODAY'};
+
+const LAYER_META={
+  land:{k:'LAND COVER',lede:'Wetland and farmland give way to runway and city.',
+    hero:y=>[DATA.land[y].pct_buildup+'%','of the delta sealed under concrete']},
+  temperature:{k:'SURFACE TEMPERATURE',lede:'Sealed surfaces trap heat — the delta runs hotter each decade.',
+    hero:y=>['+'+DATA.temperature[y].anomaly+'°C','warming since 1969'],
+    legend:[['#2c7fb8','Cool'],['#fec44f','Warm'],['#d7301f','Hot']]},
+  pollution:{k:'AIR QUALITY',lede:'A pollution plume grows over the airport and drifts across the city.',
+    hero:y=>['AQI '+DATA.pollution[y].aqi,'NO₂ '+DATA.pollution[y].no2+' µg/m³'],
+    legend:[['#1a9850','Cleaner'],['#fdae61','Moderate'],['#7b3294','Polluted']]},
+  life:{k:'LIFE & BIODIVERSITY',lede:'Green is where wildlife can still live — going out like lights.',
+    hero:y=>[DATA.life[y].bird_species,'bird species still recorded'],
+    legend:[['#54d07a','Living habitat'],['#39c0e0','Water']]}
+};
+const SCEN_META={
+  expand:{k:'2050 · EXPANSION',big:'The delta, paved.',lede:'The runway is built. Wetland and birds are effectively gone.',hero:['3.6%','wetland remains']},
+  balance:{k:'2050 · BALANCE',big:'A negotiated delta.',lede:'Limited growth with protections. The wetland holds on.',hero:['4.6%','wetland remains']},
+  protect:{k:'2050 · PROTECTION',big:'The delta, recovering.',lede:'No new runway. Wetlands and wildlife return.',hero:['5.3%','wetland — and growing']}
+};
+const FLOCK_N={1969:24,1985:16,2005:7,2025:3};
+
+function buildFlock(){
+  const host=$('#flock');
+  for(let i=0;i<26;i++){
+    const gx=(i*53)%100, gy=(i*31)%100;
+    const sp=document.createElement('span'); sp.className='gull';
+    sp.style.left=(6+gx/100*58)+'%'; sp.style.top=(8+gy/100*30)+'%';
+    sp.style.animationDuration=(9+((i*7)%80)/10)+'s'; sp.style.animationDelay=`-${(i*0.37).toFixed(2)}s`;
+    sp.innerHTML=`<svg viewBox="0 0 24 10" width="${30+((i*17)%16)}" height="13">
+      <path d="M1 7 Q6 1 12 6 Q18 1 23 7" fill="none" stroke="rgba(238,242,240,.9)" stroke-width="1.8"
+        stroke-linecap="round" style="animation-duration:${(0.7+((i*13)%60)/100)}s;animation-delay:-${(i*0.37).toFixed(2)}s"/></svg>`;
+    host.appendChild(sp);
+  }
+}
+function flockFor(year,tab,stage){
+  const visible=(tab==='land'||tab==='life')&&stage!=='decide';
+  const n=visible?(FLOCK_N[year]??3):0;
+  $$('#flock .gull').forEach((g,i)=>g.style.opacity=i<n?1:0);
+}
+function ghost(year,src){
+  const g=$('#ghost'); g.classList.remove('on');
+  setTimeout(()=>{$('#gN').textContent=year;$('#gS').textContent=src||'';g.classList.add('on');},260);
+}
+function landLegend(){return (CFG.legend||[]).map(g=>[g.color,g.label]);}
+function paintLegend(items){$('#legend').innerHTML=(items||[]).map(([c,l])=>`<div class="li"><i style="background:${c}"></i>${l}</div>`).join('');}
+
+/* idle attract loop while no visitor is engaged */
+let idleTimer=null, idleIdx=3;
+function startIdle(){
+  stopIdle();
+  const tick=()=>{ idleIdx=(idleIdx+1)%SEQ.length; const y=SEQ[idleIdx];
+    scene.setView({tab:'land',year:y,stage:'explore'},{ms:2600});
+    $('#idleYr').textContent=y; ghost(y,YEAR_SRC[y]); flockFor(y,'land','hook'); };
+  tick(); idleTimer=setInterval(tick,4600);
+}
+function stopIdle(){ if(idleTimer){clearInterval(idleTimer);idleTimer=null;} }
+
+function draw(){
+  if(!scene||!CFG||!DATA) return;
+  const idle=$('#idle'),hud=$('#hud'),leg=$('#legend');
+  if(ST.stage==='hook'){ idle.classList.remove('off'); hud.style.opacity=0; leg.style.opacity=0; startIdle(); return; }
+  stopIdle(); idle.classList.add('off'); hud.style.opacity=1; leg.style.opacity=1;
+
+  if(ST.stage==='result'&&ST.scenario){
+    scene.setView({stage:'result',scenario:ST.scenario},{ms:2200});
+    const m=SCEN_META[ST.scenario];
+    $('#hudK').textContent=m.k; $('#hudBig').textContent=m.big; $('#hudLede').textContent=m.lede;
+    $('#heroV').textContent=m.hero[0]; $('#heroL').textContent=m.hero[1];
+    ghost(2050,ST.scenario.toUpperCase()); flockFor(ST.scenario==='protect'?1985:2025,'land','result');
+    paintLegend(landLegend()); return;
+  }
+  const lm=LAYER_META[ST.tab]||LAYER_META.land;
+  scene.setView({tab:ST.tab,year:ST.year,stage:'explore'},{ms:1700});
+  $('#hudK').textContent=lm.k; $('#hudBig').textContent=''; $('#hudLede').textContent=lm.lede;
+  const [v,l]=lm.hero(ST.year); $('#heroV').textContent=v; $('#heroL').textContent=l;
+  ghost(ST.year,ST.tab==='land'?YEAR_SRC[ST.year]:lm.k);
+  flockFor(ST.year,ST.tab,ST.stage);
+  paintLegend(ST.tab==='land'?landLegend():lm.legend);
+}
+
+function listen(){
+  const es=new EventSource('/api/stream');
+  es.onmessage=e=>{const m=JSON.parse(e.data); if(m.type==='state'){Object.assign(ST,m.state);draw();}};
+}
+addEventListener('keydown',e=>{if(e.key==='g'||e.key==='G')$('#grid').classList.toggle('on');});
+addEventListener('resize',()=>{if(scene){scene.invalidate();scene.fitDelta(0);}});
+
+(async function(){
+  DATA=await (await fetch('/api/indicators')).json();
+  CFG=await (await fetch('/api/map-config')).json();
+  scene=new DeltaScene('projMap',CFG,{interactive:false});
+  setTimeout(()=>{scene.invalidate();scene.fitDelta(0);},90);
+  buildFlock();
+  try{const st=await (await fetch('/api/state')).json();Object.assign(ST,st);}catch(e){}
+  draw(); listen();
+})();
+</script>
+</body>
+</html>

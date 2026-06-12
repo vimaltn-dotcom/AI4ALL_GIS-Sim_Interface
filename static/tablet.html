@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>The Ground Beneath Growth</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --ink:#070b0d; --bone:#f2f3ef; --dim:#9db3b9; --line:rgba(242,243,239,.16);
+  --glass:rgba(7,11,13,.62); --glass2:rgba(7,11,13,.78);
+  --teal:#5fe0b0; --gold:#e8b54a; --rust:#ff6b45;
+  --expand:#ff6b45; --balance:#e8b54a; --protect:#5fe0b0;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,sans-serif;user-select:none}
+.mono{font-family:'Space Mono',monospace}
+
+/* ════ FULL-BLEED MAP ════ */
+#map{position:fixed;inset:0;z-index:0}
+.leaflet-container{background:#0a1216}
+/* cinematic frame: vignette + grain */
+#cine{position:fixed;inset:0;z-index:2;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 45%,transparent 42%,rgba(4,7,9,.55) 100%)}
+#cine::after{content:"";position:absolute;inset:0;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E")}
+
+/* ════ GULL FLOCK (ported from MorphLayer) ════ */
+#flock{position:fixed;inset:0;z-index:3;pointer-events:none;transition:opacity 2s ease}
+.gull{position:absolute;animation:drift linear infinite alternate;transition:opacity 1.5s}
+.gull svg path{animation:flap ease-in-out infinite alternate;transform-origin:50% 60%}
+@keyframes drift{from{transform:translate(0,0)}to{transform:translate(34px,-12px)}}
+@keyframes flap{from{d:path("M1 7 Q6 1 12 6 Q18 1 23 7")}to{d:path("M1 4 Q6 9 12 5 Q18 9 23 4")}}
+
+/* ════ GHOST YEAR ════ */
+#ghostYear{position:fixed;right:2vw;top:48%;transform:translateY(-50%);z-index:4;pointer-events:none;
+  font-family:'Space Mono';font-weight:700;font-size:clamp(7rem,17vw,15rem);line-height:1;
+  color:transparent;-webkit-text-stroke:2px rgba(242,243,239,.18);letter-spacing:-.04em;
+  transition:opacity .8s;opacity:0}
+#ghostYear.on{opacity:1}
+#ghostYear .src{display:block;-webkit-text-stroke:0;color:rgba(242,243,239,.5);
+  font-size:.85rem;letter-spacing:.25em;text-align:right;margin-top:.6rem;font-weight:400}
+
+/* ════ FLOATING CHROME ════ */
+#brand{position:fixed;top:1.1rem;left:1.2rem;z-index:10;display:flex;align-items:center;gap:.7rem}
+#brand .dot{width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 12px var(--teal);animation:pulse 2.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+#brand .t{font-family:'Space Mono';font-size:.68rem;letter-spacing:.32em;color:var(--bone);text-shadow:0 1px 8px #000}
+#brand .s{font-size:.6rem;color:var(--dim);letter-spacing:.14em}
+
+.glass{background:var(--glass);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);
+  border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+
+/* stage layers */
+.stage{position:fixed;inset:0;z-index:20;display:none}
+.stage.show{display:block}
+.fadeup{animation:fadeup .7s cubic-bezier(.2,.8,.2,1) both}
+@keyframes fadeup{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+
+/* ════ HOOK ════ */
+#hook{display:none;align-items:center;justify-content:center}
+#hook.show{display:flex}
+#hookCard{max-width:min(720px,88vw);text-align:center;padding:3rem 3.2rem;position:relative;overflow:hidden}
+#hookCard::before{content:"";position:absolute;inset:0;border-radius:18px;padding:1px;
+  background:linear-gradient(135deg,rgba(95,224,176,.6),transparent 35%,transparent 70%,rgba(255,107,69,.5));
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+#hookCard .k{font-family:'Space Mono';letter-spacing:.4em;font-size:.66rem;color:var(--teal);margin-bottom:1.4rem}
+#hookCard h1{font-size:clamp(1.9rem,5.4vw,3.2rem);font-weight:900;line-height:1.04;letter-spacing:-.015em}
+#hookCard h1 .big{background:linear-gradient(90deg,var(--rust),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+#hookCard p{color:var(--dim);font-size:1.02rem;line-height:1.6;margin:1.3rem auto 2rem;max-width:540px}
+.cta{display:inline-flex;align-items:center;gap:.6rem;background:var(--bone);color:var(--ink);font-weight:800;font-size:1.02rem;
+  font-family:'Archivo';padding:1.05rem 2.3rem;border:none;border-radius:100px;cursor:pointer;letter-spacing:.01em;
+  box-shadow:0 10px 36px rgba(242,243,239,.22);transition:transform .15s}
+.cta:active{transform:scale(.96)}
+#hookYears{display:flex;justify-content:center;gap:1.6rem;margin-top:2.1rem}
+#hookYears span{font-family:'Space Mono';font-size:.72rem;color:var(--dim);letter-spacing:.1em;transition:.4s}
+#hookYears span.on{color:var(--bone);text-shadow:0 0 14px rgba(95,224,176,.8)}
+
+/* ════ EXPLORE ════ */
+#explore{pointer-events:none}
+#explore *{pointer-events:auto}
+
+/* topic dock — bottom centre */
+#dock{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:30;display:flex;gap:.5rem;padding:.5rem}
+.topic{display:flex;flex-direction:column;align-items:center;gap:.3rem;min-width:108px;padding:.75rem .9rem;border-radius:14px;
+  cursor:pointer;border:1px solid transparent;transition:.3s;color:var(--dim)}
+.topic .ico{font-size:1.45rem;filter:grayscale(.5);transition:.3s}
+.topic .nm{font-size:.7rem;font-weight:700;letter-spacing:.06em}
+.topic.on{background:rgba(242,243,239,.1);border-color:rgba(242,243,239,.35);color:var(--bone)}
+.topic.on .ico{filter:none;transform:scale(1.15)}
+
+/* timeline rail — above dock */
+#rail{position:fixed;left:50%;bottom:6.6rem;transform:translateX(-50%);z-index:30;
+  display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem}
+#playBtn{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:rgba(242,243,239,.1);
+  color:var(--bone);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
+#playBtn:active{transform:scale(.92)}
+.stop{display:flex;flex-direction:column;gap:.35rem;cursor:pointer;width:clamp(64px,9vw,110px)}
+.stop .y{font-family:'Space Mono';font-size:.82rem;font-weight:700;color:var(--dim);text-align:center;transition:.3s}
+.stop .tr{height:5px;border-radius:3px;background:rgba(242,243,239,.14);overflow:hidden}
+.stop .tr i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--teal),var(--gold));border-radius:3px}
+.stop.done .tr i{width:100%}
+.stop.active .y{color:var(--bone);text-shadow:0 0 12px rgba(95,224,176,.7)}
+.stop.active .tr i{animation:fill linear forwards;animation-duration:var(--dwell,5s)}
+@keyframes fill{from{width:0%}to{width:100%}}
+.stop.paused .tr i{animation-play-state:paused}
+
+/* story card — left */
+#story{position:fixed;left:1.2rem;top:50%;transform:translateY(-50%);z-index:25;width:min(330px,30vw);padding:1.3rem 1.4rem}
+#story .tk{font-family:'Space Mono';font-size:.62rem;letter-spacing:.3em;color:var(--teal);margin-bottom:.45rem}
+#story h2{font-size:1.35rem;font-weight:800;letter-spacing:-.01em;margin-bottom:.55rem}
+#story .cap{color:var(--dim);font-size:.88rem;line-height:1.5;min-height:3.9em;transition:opacity .4s}
+#story .cap.swap{opacity:0}
+#heroStat{margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--line)}
+#heroStat .v{font-family:'Space Mono';font-weight:700;font-size:2.1rem;line-height:1;transition:color .5s}
+#heroStat .l{font-size:.72rem;color:var(--dim);letter-spacing:.05em;margin-top:.3rem}
+#miniStats{display:flex;gap:1.1rem;margin-top:.8rem}
+#miniStats .m .v{font-family:'Space Mono';font-weight:700;font-size:1.02rem}
+#miniStats .m .l{font-size:.62rem;color:var(--dim)}
+#spList{margin-top:.8rem;display:none;flex-direction:column;gap:.45rem}
+#spList.on{display:flex}
+.sp{display:flex;align-items:center;gap:.55rem}
+.sp .n{flex:1;font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp .b{width:84px;height:5px;border-radius:3px;background:rgba(242,243,239,.12);overflow:hidden}
+.sp .b i{display:block;height:100%;border-radius:3px;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
+.sp .p{font-family:'Space Mono';font-size:.66rem;color:var(--dim);width:34px;text-align:right}
+
+/* legend chip */
+#legend{position:fixed;right:1.2rem;bottom:1.2rem;z-index:25;padding:.75rem .95rem;display:flex;flex-direction:column;gap:.4rem;max-width:200px}
+#legend .li{display:flex;align-items:center;gap:.5rem;font-size:.68rem;color:var(--dim)}
+#legend .li i{width:11px;height:11px;border-radius:3px;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.2)}
+
+/* decide CTA — appears after a full cycle */
+#decideFab{position:fixed;right:1.2rem;top:1.1rem;z-index:30;opacity:0;pointer-events:none;transition:.5s;
+  display:inline-flex;align-items:center;gap:.55rem;background:linear-gradient(100deg,var(--rust),var(--gold));
+  color:var(--ink);font-weight:800;font-size:.92rem;padding:.85rem 1.5rem;border:none;border-radius:100px;cursor:pointer;
+  box-shadow:0 10px 34px rgba(255,107,69,.4)}
+#decideFab.on{opacity:1;pointer-events:auto;animation:breathe 2.6s infinite}
+@keyframes breathe{0%,100%{box-shadow:0 10px 34px rgba(255,107,69,.4)}50%{box-shadow:0 10px 48px rgba(255,107,69,.75)}}
+
+/* ════ DECIDE ════ */
+#decide{display:none;align-items:center;justify-content:center;background:rgba(4,7,9,.55);backdrop-filter:blur(3px)}
+#decide.show{display:flex}
+#decideBox{width:min(960px,94vw);text-align:center}
+#decideBox h2{font-size:clamp(1.6rem,4.6vw,2.5rem);font-weight:900;letter-spacing:-.01em}
+#decideBox .sub{color:var(--dim);margin:.6rem auto 1.7rem;max-width:640px;line-height:1.55;font-size:.95rem}
+#choices{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem}
+.choice{padding:1.4rem 1.2rem;cursor:pointer;text-align:left;display:flex;flex-direction:column;min-height:300px;
+  position:relative;overflow:hidden;transition:transform .2s}
+.choice:active{transform:scale(.97)}
+.choice::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--ac)}
+.choice .cnum{font-family:'Space Mono';font-size:.64rem;letter-spacing:.22em;color:var(--dim)}
+.choice .cname{font-size:1.7rem;font-weight:900;margin:.35rem 0 .5rem;color:var(--ac)}
+.choice .cdesc{font-size:.84rem;color:var(--dim);line-height:1.5;flex:1}
+.choice .cm{margin-top:.9rem;font-family:'Space Mono';font-size:.72rem;color:var(--dim);line-height:1.7}
+.choice .pick{margin-top:.9rem;font-weight:800;font-size:.88rem;text-align:center;padding:.65rem;border-radius:100px;
+  background:rgba(242,243,239,.09);transition:.25s}
+.choice:hover .pick{background:var(--ac);color:var(--ink)}
+.choice[data-c=expand]{--ac:var(--expand)} .choice[data-c=balance]{--ac:var(--balance)} .choice[data-c=protect]{--ac:var(--protect)}
+
+/* ════ RESULT ════ */
+#result{display:none;align-items:flex-end;justify-content:flex-start;padding:1.4rem}
+#result.show{display:flex}
+#resCard{width:min(460px,92vw);padding:1.6rem 1.7rem}
+#resCard .k{font-family:'Space Mono';font-size:.62rem;letter-spacing:.3em;color:var(--dim)}
+#resCard h2{font-size:1.7rem;font-weight:900;margin:.4rem 0 .5rem}
+#resCard .body{color:var(--dim);font-size:.88rem;line-height:1.55;margin-bottom:1.1rem}
+.trow{display:flex;align-items:center;gap:.7rem;margin-bottom:.55rem}
+.trow .tk{width:70px;text-align:right;font-weight:800;font-size:.8rem}
+.trow .tb{flex:1;height:18px;border-radius:6px;background:rgba(242,243,239,.08);overflow:hidden}
+.trow .tb i{display:block;height:100%;width:0;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.trow .tn{width:70px;font-family:'Space Mono';font-size:.7rem;color:var(--dim)}
+#ttotal{font-size:.72rem;color:var(--dim);margin:.5rem 0 1.1rem}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="cine"></div>
+<div id="flock"></div>
+<div id="ghostYear" class="mono"><span id="gyNum">2025</span><span class="src" id="gySrc"></span></div>
+
+<div id="brand">
+  <div class="dot"></div>
+  <div><div class="t">THE GROUND BENEATH GROWTH</div><div class="s mono">LLOBREGAT DELTA · BCN–EL PRAT</div></div>
+</div>
+
+<!-- HOOK -->
+<section class="stage" id="hook">
+  <div id="hookCard" class="glass fadeup">
+    <div class="k">WHAT ARE WE WILLING TO SACRIFICE FOR GROWTH?</div>
+    <h1>In 40 years the delta lost nearly <span class="big">half its wetland</span> — and the life that lived in it.</h1>
+    <p>The proposed third runway would reach into Catalonia's last great wetland. Watch the ground change behind you — then decide its future.</p>
+    <button class="cta" id="startBtn">Step onto the delta <span>→</span></button>
+    <div id="hookYears"><span data-y="1969">1969</span><span data-y="1985">1985</span><span data-y="2005">2005</span><span data-y="2025">2025</span></div>
+  </div>
+</section>
+
+<!-- EXPLORE -->
+<section class="stage" id="explore">
+  <div id="story" class="glass fadeup">
+    <div class="tk" id="stK">LAND COVER</div>
+    <h2 id="stT">The land itself</h2>
+    <div class="cap" id="stCap"></div>
+    <div id="heroStat"><div class="v" id="hsV">—</div><div class="l" id="hsL"></div></div>
+    <div id="miniStats"></div>
+    <div id="spList"></div>
+  </div>
+
+  <div id="rail" class="glass">
+    <button id="playBtn">❚❚</button>
+    <div class="stop" data-y="1969"><div class="y">1969</div><div class="tr"><i></i></div></div>
+    <div class="stop" data-y="1985"><div class="y">1985</div><div class="tr"><i></i></div></div>
+    <div class="stop" data-y="2005"><div class="y">2005</div><div class="tr"><i></i></div></div>
+    <div class="stop" data-y="2025"><div class="y">2025</div><div class="tr"><i></i></div></div>
+  </div>
+
+  <div id="dock" class="glass">
+    <div class="topic on" data-tab="land"><div class="ico">🗺️</div><div class="nm">LAND</div></div>
+    <div class="topic" data-tab="temperature"><div class="ico">🌡️</div><div class="nm">HEAT</div></div>
+    <div class="topic" data-tab="pollution"><div class="ico">🌫️</div><div class="nm">AIR</div></div>
+    <div class="topic" data-tab="life"><div class="ico">🐦</div><div class="nm">LIFE</div></div>
+  </div>
+
+  <div id="legend" class="glass"></div>
+  <button id="decideFab">Decide the delta's future →</button>
+</section>
+
+<!-- DECIDE -->
+<section class="stage" id="decide">
+  <div id="decideBox" class="fadeup">
+    <h2>What should happen to the delta?</h2>
+    <div class="sub">You've watched 40 years of change. Now imagine 2050 — there is no neutral choice. Each path has a cost and a gain.</div>
+    <div id="choices">
+      <div class="choice glass" data-c="expand">
+        <div class="cnum">01 · GROWTH</div><div class="cname">Expand</div>
+        <div class="cdesc">Build the third runway. Maximise connectivity, jobs and trade — and accept the wetland's loss.</div>
+        <div class="cm" data-m="expand"></div><div class="pick">Choose this future</div>
+      </div>
+      <div class="choice glass" data-c="balance">
+        <div class="cnum">02 · COMPROMISE</div><div class="cname">Balance</div>
+        <div class="cdesc">Limited expansion under strict protections. Some growth, some restoration — a negotiated middle path.</div>
+        <div class="cm" data-m="balance"></div><div class="pick">Choose this future</div>
+      </div>
+      <div class="choice glass" data-c="protect">
+        <div class="cnum">03 · PRESERVE</div><div class="cname">Protect</div>
+        <div class="cdesc">No new runway. Restore the wetlands and let the ecosystem recover — nature before growth.</div>
+        <div class="cm" data-m="protect"></div><div class="pick">Choose this future</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESULT -->
+<section class="stage" id="result">
+  <div id="resCard" class="glass fadeup">
+    <div class="k">2050 · THE FUTURE YOU CHOSE</div>
+    <h2 id="resTitle"></h2>
+    <div class="body" id="resBody"></div>
+    <div class="trow"><div class="tk" style="color:var(--expand)">Expand</div><div class="tb"><i data-k="expand" style="background:var(--expand)"></i></div><div class="tn" data-tn="expand"></div></div>
+    <div class="trow"><div class="tk" style="color:var(--balance)">Balance</div><div class="tb"><i data-k="balance" style="background:var(--balance)"></i></div><div class="tn" data-tn="balance"></div></div>
+    <div class="trow"><div class="tk" style="color:var(--protect)">Protect</div><div class="tb"><i data-k="protect" style="background:var(--protect)"></i></div><div class="tn" data-tn="protect"></div></div>
+    <div id="ttotal"></div>
+    <button class="cta" id="restart" style="width:100%">↺ Hand it to the next visitor</button>
+  </div>
+</section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/static/delta-map.js"></script>
+<script src="/static/delta-scene.js"></script>
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+let DATA=null, CFG=null, scene=null;
+const ST={stage:'hook',tab:'land',year:2025,scenario:null};
+const SEQ=[1969,1985,2005,2025], DWELL=5000, XFADE=1700;
+const YEAR_SRC={1969:'1956 AERIAL · IGN',1985:'SATELLITE · GLC 30m',2005:'SATELLITE · GLC 30m',2025:'SATELLITE · TODAY'};
+
+async function push(patch){Object.assign(ST,patch);
+  try{await fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)});}catch(e){}}
+
+/* ── narrative captions per topic × year ── */
+const STORY={
+  land:{k:'LAND COVER',t:'The land itself',hero:y=>[DATA.land[y].pct_buildup+'%','of the delta is sealed under concrete & tarmac'],
+    cap:{1969:'Before the great expansion: a working delta of farms, marsh and a modest aerodrome by the sea.',
+         1985:'The airport hardens. Barcelona advances south, field by field.',
+         2005:'The third runway cuts across the wetland’s edge. Half the marsh is already gone.',
+         2025:'A sealed landscape. The delta survives only in protected fragments.'},
+    minis:y=>[['Wetland',DATA.land[y].pct_wetland+'%'],['Farmland',DATA.land[y].pct_farmland+'%']]},
+  temperature:{k:'SURFACE TEMPERATURE',t:'The heat beneath',hero:y=>['+'+DATA.temperature[y].anomaly+'°C','warming since 1969'],
+    cap:{1969:'A delta that breathes — vegetation and open water keep the land cool.',
+         1985:'First heat islands form over the runways and the new districts.',
+         2005:'Concrete absorbs the sun all day. The nights stop cooling down.',
+         2025:'Up to +4°C over sealed ground. Heat has become the city’s climate.'},
+    minis:y=>[['Mean surface',DATA.temperature[y].mean_c+'°C'],['Heat island',`+${DATA.temperature[y].uhi}°C`]]},
+  pollution:{k:'AIR QUALITY',t:'The air above',hero:y=>[DATA.pollution[y].aqi,'air quality index over the delta'],
+    cap:{1969:'Skies over the delta are still largely clean — a few thousand flights a year.',
+         1985:'Traffic multiplies. NO₂ doubles around the terminals.',
+         2005:'Peak pollution: 27 million passengers, road traffic, industry.',
+         2025:'Cleaner engines help — but the plume never really leaves.'},
+    minis:y=>[['NO₂',DATA.pollution[y].no2+' µg/m³'],['PM2.5',DATA.pollution[y].pm25+' µg/m³']]},
+  life:{k:'LIFE & BIODIVERSITY',t:'What still lives here',hero:y=>[DATA.life[y].bird_species,'bird species recorded in the delta'],
+    cap:{1969:'360 species. The delta is one of the richest habitats on the Catalan coast.',
+         1985:'Habitat splinters. The bittern’s boom grows rare in the reeds.',
+         2005:'Half the wetland gone — the bittern falls silent.',
+         2025:'121 species cling to protected fragments between the runways.'},
+    minis:y=>[['Habitat quality',DATA.life[y].habitat_quality+'%'],['Since 1969','−'+(DATA.life[1969].bird_species-DATA.life[y].bird_species)+' species']]}
+};
+const LEGENDS={
+  temperature:[['#2c7fb8','Cool'],['#fec44f','Warm'],['#d7301f','Hot']],
+  pollution:[['#1a9850','Cleaner'],['#fdae61','Moderate'],['#7b3294','Polluted']],
+  life:[['#54d07a','Living habitat'],['#39c0e0','Water'],['rgba(255,255,255,.15)','Lost ground']]
+};
+
+/* ── gull flock (ported from MorphLayer) ── */
+const FLOCK_N={1969:24,1985:16,2005:7,2025:3};
+function buildFlock(){
+  const host=$('#flock');
+  for(let i=0;i<26;i++){
+    const gx=(i*53)%100, gy=(i*31)%100;
+    const sp=document.createElement('span'); sp.className='gull';
+    sp.style.left=(6+gx/100*58)+'%'; sp.style.top=(8+gy/100*30)+'%';
+    sp.style.animationDuration=(9+((i*7)%80)/10)+'s'; sp.style.animationDelay=`-${(i*0.37).toFixed(2)}s`;
+    sp.innerHTML=`<svg viewBox="0 0 24 10" width="${26+((i*17)%14)}" height="12">
+      <path d="M1 7 Q6 1 12 6 Q18 1 23 7" fill="none" stroke="rgba(238,242,240,.85)" stroke-width="1.8"
+        stroke-linecap="round" style="animation-duration:${(0.7+((i*13)%60)/100)}s;animation-delay:-${(i*0.37).toFixed(2)}s"/></svg>`;
+    host.appendChild(sp);
+  }
+}
+function flockFor(year,tab){
+  const visible=(tab==='land'||tab==='life')&&ST.stage!=='decide';
+  const n=visible?(FLOCK_N[year]??3):0;
+  $$('#flock .gull').forEach((g,i)=>g.style.opacity=i<n?1:0);
+}
+
+/* ── stage switching ── */
+function showStage(stage){
+  ST.stage=stage;
+  $$('.stage').forEach(s=>s.classList.remove('show'));
+  $('#'+stage).classList.add('show');
+  if(stage==='decide'||stage==='result'){stopCycle();}
+  if(stage==='decide') $('#flock').style.opacity=0; else $('#flock').style.opacity=1;
+}
+
+/* ── ghost year ── */
+function setGhost(year){
+  const g=$('#ghostYear'); g.classList.remove('on');
+  setTimeout(()=>{ $('#gyNum').textContent=year;
+    $('#gySrc').textContent=(ST.tab==='land')?(YEAR_SRC[year]||''):''; g.classList.add('on'); },240);
+}
+
+/* ── AUTO-PLAY year cycle ── */
+let cycleIdx=0, cycleTimer=null, playing=false, cycledOnce=false;
+function setYear(year,{animate=true}={}){
+  ST.year=year; push({year});
+  scene.setView({tab:ST.tab,year,stage:'explore'},{animate,ms:XFADE});
+  setGhost(year); flockFor(year,ST.tab); paintStory(year);
+  $$('.stop').forEach(s=>{
+    const y=+s.dataset.y, i=SEQ.indexOf(y);
+    s.classList.toggle('active',y===year);
+    s.classList.toggle('done',i<SEQ.indexOf(year)||(!playing&&y===year));
+    s.classList.toggle('paused',!playing);
+    if(y===year){const bar=s.querySelector('.tr i');bar.style.animation='none';void bar.offsetWidth;
+      bar.style.animation='';s.style.setProperty('--dwell',DWELL+'ms');}
+  });
+}
+function startCycle(from=0){
+  stopCycle(); playing=true; $('#playBtn').textContent='❚❚'; cycleIdx=from;
+  stepCycle();
+}
+function stepCycle(){
+  setYear(SEQ[cycleIdx]);
+  cycleTimer=setTimeout(()=>{
+    cycleIdx++;
+    if(cycleIdx<SEQ.length) stepCycle();
+    else { playing=false; $('#playBtn').textContent='▶'; cycledOnce=true; $('#decideFab').classList.add('on');
+           $$('.stop').forEach(s=>s.classList.add('done')); }
+  },DWELL);
+}
+function stopCycle(){ if(cycleTimer){clearTimeout(cycleTimer);cycleTimer=null;} playing=false; $('#playBtn').textContent='▶';
+  $$('.stop').forEach(s=>s.classList.remove('active')); }
+
+/* ── story card ── */
+function paintStory(year){
+  const s=STORY[ST.tab]; if(!s) return;
+  $('#stK').textContent=s.k; $('#stT').textContent=s.t;
+  const cap=$('#stCap'); cap.classList.add('swap');
+  setTimeout(()=>{cap.textContent=s.cap[year]||'';cap.classList.remove('swap');},220);
+  const [v,l]=s.hero(year); $('#hsV').textContent=v; $('#hsL').textContent=l;
+  $('#hsV').style.color=(ST.tab==='life')?'var(--protect)':(ST.tab==='temperature'?'var(--rust)':'var(--bone)');
+  $('#miniStats').innerHTML=s.minis(year).map(([k,val])=>`<div class="m"><div class="v mono">${val}</div><div class="l">${k}</div></div>`).join('');
+  const sl=$('#spList');
+  if(ST.tab==='life'){ sl.classList.add('on');
+    sl.innerHTML=DATA.species.map(sp=>{
+      const v=sp.curve[year]??0, pct=Math.round(v*100);
+      const col=v>0.6?'var(--protect)':v>0.3?'var(--balance)':'var(--expand)';
+      return `<div class="sp"><div class="n">${sp.name}</div><div class="b"><i style="width:${pct}%;background:${col}"></i></div><div class="p mono">${pct}%</div></div>`;
+    }).join('');
+  } else sl.classList.remove('on');
+  paintLegend();
+}
+function paintLegend(){
+  const el=$('#legend');
+  const items=(ST.tab==='land')?(CFG.legend||[]).map(g=>[g.color,g.label]):LEGENDS[ST.tab]||[];
+  el.innerHTML=items.map(([c,l])=>`<div class="li"><i style="background:${c}"></i>${l}</div>`).join('');
+}
+
+/* ── decide / result ── */
+const RES={
+  expand:{title:'You chose growth.',body:'The runway is built. The Llobregat wetland is effectively gone — the birds, the natural water filter, the last delta farmland. The economy grows; the ground beneath it does not recover.'},
+  balance:{title:'You chose balance.',body:'Limited expansion under strict protections. Some wetland is restored even as the airport grows. A negotiated future — neither side wins fully, and the delta hangs on.'},
+  protect:{title:'You chose to protect.',body:'No third runway. Wetlands are restored and the ecosystem begins to recover — birds return to widening reedbeds. Growth is constrained, but the delta survives.'}
+};
+function fillChoiceMetrics(){
+  const s=DATA.scenarios_2050;
+  const f=c=>`Wetland ${c.pct_wetland}% · Built ${c.pct_buildup}%<br>~${c.bird_species} bird species · ${c.mean_c}°C · AQI ${c.aqi}`;
+  $$('#choices .cm').forEach(el=>el.innerHTML=f(s[el.dataset.m]));
+}
+async function choose(c){
+  await push({scenario:c,stage:'result'});
+  scene.setView({stage:'result',scenario:c},{ms:2200});
+  $('#resTitle').textContent=RES[c].title; $('#resBody').textContent=RES[c].body;
+  showStage('result'); refreshTally();
+}
+async function refreshTally(){try{paintTally(await (await fetch('/api/tally')).json());}catch(e){}}
+function paintTally(t){
+  ['expand','balance','protect'].forEach(k=>{
+    $(`[data-k=${k}]`).style.width=(t.pct[k]||0)+'%';
+    $(`[data-tn=${k}]`).textContent=`${t.counts[k]} · ${t.pct[k]||0}%`;});
+  $('#ttotal').textContent=`${t.total} ${t.total===1?'visitor has':'visitors have'} chosen so far`;
+}
+
+/* ── hook ambient (idle attract loop, no server pushes) ── */
+let hookTimer=null, hookIdx=3;
+function startHookLoop(){
+  stopHookLoop();
+  const tick=()=>{ hookIdx=(hookIdx+1)%SEQ.length; const y=SEQ[hookIdx];
+    scene.setView({tab:'land',year:y,stage:'explore'},{ms:2400});
+    setGhost(y); flockFor(y,'land');
+    $$('#hookYears span').forEach(s=>s.classList.toggle('on',+s.dataset.y===y)); };
+  tick(); hookTimer=setInterval(tick,4200);
+}
+function stopHookLoop(){ if(hookTimer){clearInterval(hookTimer);hookTimer=null;} }
+
+/* ── bindings ── */
+function bind(){
+  $('#startBtn').onclick=()=>{ stopHookLoop(); push({stage:'explore',tab:'land'}); showStage('explore');
+    syncTopics(); startCycle(0); };
+  $$('.topic').forEach(t=>t.onclick=()=>{ if(ST.tab===t.dataset.tab&&playing)return;
+    push({tab:t.dataset.tab}); syncTopics(); startCycle(0); });
+  $$('.stop').forEach(s=>s.onclick=()=>{ stopCycle(); setYear(+s.dataset.y); });
+  $('#playBtn').onclick=()=>{ if(playing) stopCycle(); else startCycle(Math.max(0,SEQ.indexOf(ST.year))); };
+  $('#decideFab').onclick=()=>{ push({stage:'decide'}); showStage('decide'); };
+  $$('.choice').forEach(ch=>ch.onclick=()=>choose(ch.dataset.c));
+  $('#restart').onclick=()=>{ push({stage:'hook',scenario:null,tab:'land',year:2025});
+    Object.assign(ST,{tab:'land',year:2025}); cycledOnce=false; $('#decideFab').classList.remove('on');
+    scene.setView({tab:'land',year:2025,stage:'explore'},{ms:1800}); showStage('hook'); startHookLoop(); };
+  window.addEventListener('resize',()=>{scene&&scene.invalidate();});
+}
+function syncTopics(){ $$('.topic').forEach(t=>t.classList.toggle('on',t.dataset.tab===ST.tab)); }
+
+/* live tally over SSE */
+function listenStream(){
+  try{ const es=new EventSource('/api/stream');
+    es.onmessage=e=>{ const m=JSON.parse(e.data);
+      if(m.type==='tally'){ const v=m.tally,tot=(v.expand+v.balance+v.protect)||1;
+        paintTally({counts:v,total:v.expand+v.balance+v.protect,
+          pct:{expand:Math.round(v.expand/tot*100),balance:Math.round(v.balance/tot*100),protect:Math.round(v.protect/tot*100)}});}};
+  }catch(e){}
+}
+
+(async function(){
+  DATA=await (await fetch('/api/indicators')).json();
+  CFG=await (await fetch('/api/map-config')).json();
+  scene=new DeltaScene('map',CFG,{interactive:false});
+  setTimeout(()=>{scene.invalidate();scene.fitDelta(0);},90);
+  buildFlock(); bind(); fillChoiceMetrics(); showStage('hook'); startHookLoop(); listenStream();
+})();
+</script>
+</body>
+</html>
