@@ -104,8 +104,8 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 /* story card — left */
 #story{position:fixed;left:1.2rem;top:50%;transform:translateY(-50%);z-index:25;width:min(330px,30vw);padding:1.3rem 1.4rem}
 #story .tk{font-family:'Space Mono';font-size:.62rem;letter-spacing:.3em;color:var(--teal);margin-bottom:.45rem}
-#story h2{font-size:1.35rem;font-weight:800;letter-spacing:-.01em;margin-bottom:.55rem}
-#story .cap{color:var(--dim);font-size:.88rem;line-height:1.5;min-height:3.9em;transition:opacity .4s}
+#story h2{display:none}
+#story .cap{color:var(--bone);font-size:1.08rem;font-weight:700;line-height:1.42;min-height:2.4em;transition:opacity .4s}
 #story .cap.swap{opacity:0}
 #heroStat{margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--line)}
 #heroStat .v{font-family:'Space Mono';font-weight:700;font-size:2.1rem;line-height:1;transition:color .5s}
@@ -122,9 +122,9 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 .sp .p{font-family:'Space Mono';font-size:.66rem;color:var(--dim);width:34px;text-align:right}
 
 /* legend chip */
-#legend{position:fixed;right:1.2rem;bottom:1.2rem;z-index:25;padding:.75rem .95rem;display:flex;flex-direction:column;gap:.4rem;max-width:200px}
-#legend .li{display:flex;align-items:center;gap:.5rem;font-size:.68rem;color:var(--dim)}
-#legend .li i{width:11px;height:11px;border-radius:3px;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.2)}
+#legend{position:fixed;right:1.2rem;bottom:1.2rem;z-index:25;padding:1rem 1.25rem;display:flex;flex-direction:column;gap:.65rem;max-width:260px}
+#legend .li{display:flex;align-items:center;gap:.75rem;font-size:.94rem;color:var(--bone);font-weight:600;letter-spacing:.01em}
+#legend .li i{width:16px;height:16px;border-radius:4px;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.4)}
 
 /* decide CTA — appears after a full cycle */
 #decideFab{position:fixed;right:1.2rem;top:1.1rem;z-index:30;opacity:0;pointer-events:none;transition:.5s;
@@ -325,31 +325,31 @@ async function push(patch){Object.assign(ST,patch);
 const STORY={
   land:{k:'LAND COVER',t:'The land itself',
     hero:y=>[DATA.land[y].pct_buildup+'%','of the delta sealed under concrete & tarmac'],
-    cap:{1985:'The starting point: a working delta of farms, marsh and a modest aerodrome by the sea.',
-         2000:'Barcelona advances south. A third of the farmland has given way to roads, logistics and terminals.',
-         2010:'The third runway is operational. Half the marsh is already gone.',
-         2020:'A sealed landscape. Wetland survives only in protected fragments between the runways.'},
+    cap:{1985:'Farms, wetland, and a small airport — the delta still breathes.',
+         2000:'Barcelona expands south. A third of the farmland has already gone.',
+         2010:'The third runway cuts through the last wetland corridor.',
+         2020:'Only protected fragments survive. The rest is sealed under concrete.'},
     minis:y=>[['Wetland',DATA.land[y].pct_wetland+'%'],['Farmland',DATA.land[y].pct_farmland+'%']]},
   temperature:{k:'SURFACE TEMPERATURE',t:'The heat beneath',
     hero:y=>[HEAT[y]?'+'+HEAT[y].anomaly+'°C':'—','warming since 2005 · ERA5 reanalysis'],
-    cap:{2005:'MODIS first reveals the delta\'s heat signature: runways glow 15 °C hotter than the wetland beside them.',
-         2011:'Six years on — expanded urban areas have widened the heat island. Nights stop cooling down.',
-         2017:'The sealed footprint keeps growing. Wetland fragments struggle to offset the heat absorbed around them.',
-         2024:'Two decades of satellite data confirm a persistent heat island over the airport and the city edge.'},
+    cap:{2005:'Runways run 15 °C hotter than the adjacent marsh — sealed ground absorbs everything.',
+         2011:'The heat island widens. Expanded urban edges stop the delta cooling at night.',
+         2017:'Every new sealed surface radiates heat the wetland can no longer absorb.',
+         2024:'Two decades confirm: this ground will not stop warming.'},
     minis:y=>[['July mean (ERA5)',HEAT[y]?HEAT[y].mean_c+' °C':'—'],['Anomaly vs 2005',HEAT[y]?'+'+HEAT[y].anomaly+' °C':'—']]},
   pollution:{k:'AIR TRAFFIC',t:'The sky above',
     hero:y=>[TRAFFIC_DATA[y]?TRAFFIC_DATA[y].flights_day+' flights/day':'—','daily movements · El Prat airport'],
-    cap:{2005:'448 daily flights, 27 million passengers — a relentless corridor of metal above the marsh. The approach paths already cross the lagoons.',
-         2011:'Traffic rebounds after the recession. Low-cost carriers multiply routes: 564 daily movements rattle every remaining corner of the delta.',
-         2017:'Saturation. 768 daily flights trace continuous corridors over nesting wetland — the noise contour has swallowed the last quiet fragments.',
-         2024:'Post-pandemic record: 921 daily movements. The skies above the delta have never been busier — or louder. A third runway would double this.'},
+    cap:{2005:'448 daily flights cross the lagoons — a corridor of metal that never closes.',
+         2011:'Low-cost growth adds 116 daily flights. The sky above the delta is a highway.',
+         2017:'768 daily flights — the noise contour has swallowed the last quiet wetland.',
+         2024:'921 daily movements. A third runway would double this number.'},
     minis:y=>[['Passengers/year',TRAFFIC_DATA[y]?.passengers??'—'],['Noise index',TRAFFIC_DATA[y]?.noise??'—']]},
   life:{k:'LIFE & BIODIVERSITY',t:'What still lives here',
     hero:y=>[LIFE[y]?.species??'—','bird species in GBIF records for the delta'],
-    cap:{1985:'The delta holds one of the richest coastal habitats on the Catalan coast — protected wetland interlaced with farmland.',
-         2000:'Fragmentation accelerates. Nesting sites disappear as the airport expands northward into the lagoons.',
-         2010:'The third runway bisects the last wetland corridor. GBIF records show the richest areas going silent.',
-         2020:'Only protected fragments remain. Each new impermeable surface cuts another thread of the habitat web.'},
+    cap:{1985:'One of the richest coastal habitats on the Catalan coast — still largely intact.',
+         2000:'Runway expansion begins silencing the nesting grounds one by one.',
+         2010:'The last wildlife corridor is severed. The richest areas go quiet.',
+         2020:'Protected fragments hold what\'s left. Each sealed hectare breaks another thread.'},
     minis:y=>[['Habitat quality',DATA.life[y]?.habitat_quality+'%'],['GBIF sightings',LIFE[y]?.occurrences??'—']]}
 };
 const LEGENDS={
@@ -543,17 +543,33 @@ async function _fetchLive(){
 }
 
 function _drawPlane(ctx,s,glow){
-  ctx.shadowBlur=10; ctx.shadowColor=glow;
-  ctx.fillStyle='rgba(255,255,255,0.97)';
-  ctx.beginPath(); ctx.ellipse(0,0,s*0.28,s,0,0,Math.PI*2); ctx.fill();
+  // Fill with route colour (cyan=arrival, amber=departure, white=live)
+  const fill={'#00ccff':'rgba(0,210,255,0.97)','#ffaa44':'rgba(255,170,68,0.97)'}[glow]||'rgba(255,255,255,0.97)';
+  ctx.shadowBlur=18; ctx.shadowColor='rgba(0,0,0,0.65)';
+  ctx.fillStyle=fill; ctx.strokeStyle='rgba(255,255,255,0.52)'; ctx.lineWidth=0.9;
+  // Fuselage — nose at (0,−s), tail at (0,+s)
   ctx.beginPath();
-  ctx.moveTo(-s*1.38,s*0.08); ctx.lineTo(s*1.38,s*0.08);
-  ctx.lineTo(s*0.72,s*0.44); ctx.lineTo(-s*0.72,s*0.44);
-  ctx.closePath(); ctx.fill();
+  ctx.moveTo(0,-s);
+  ctx.lineTo(s*0.20,-s*0.45); ctx.lineTo(s*0.20,s*0.52);
+  ctx.lineTo(0,s*0.38);
+  ctx.lineTo(-s*0.20,s*0.52); ctx.lineTo(-s*0.20,-s*0.45);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // Main wings — swept back
   ctx.beginPath();
-  ctx.moveTo(-s*0.50,s*0.80); ctx.lineTo(s*0.50,s*0.80);
-  ctx.lineTo(s*0.20,s*0.34); ctx.lineTo(-s*0.20,s*0.34);
-  ctx.closePath(); ctx.fill();
+  ctx.moveTo(s*0.12,-s*0.20); ctx.lineTo(s*1.72,s*0.50);
+  ctx.lineTo(s*1.42,s*0.65); ctx.lineTo(s*0.20,s*0.20);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-s*0.12,-s*0.20); ctx.lineTo(-s*1.72,s*0.50);
+  ctx.lineTo(-s*1.42,s*0.65); ctx.lineTo(-s*0.20,s*0.20);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // Horizontal stabilizer
+  ctx.beginPath();
+  ctx.moveTo(s*0.20,s*0.54); ctx.lineTo(s*0.70,s*0.86);
+  ctx.lineTo(s*0.55,s*0.97); ctx.lineTo(0,s*0.72);
+  ctx.lineTo(-s*0.55,s*0.97); ctx.lineTo(-s*0.70,s*0.86);
+  ctx.lineTo(-s*0.20,s*0.54);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
 }
 
 function _drawFlights(){
@@ -561,7 +577,7 @@ function _drawFlights(){
   const W=window.innerWidth,H=window.innerHeight;
   flightCanvas.width=W; flightCanvas.height=H;
   const td=TRAFFIC_DATA[ST.year]||TRAFFIC_DATA[2005];
-  const want=Math.max(5,Math.round(td.flights_day/62));
+  const want=Math.max(6,Math.round(td.flights_day/46));
   if(flights.length<want&&Math.random()<0.055) _spawnFlight();
 
   // Exhaust/noise haze around airport, scaled by traffic volume
@@ -586,7 +602,8 @@ function _drawFlights(){
     if(f.trail.length>14) f.trail.shift();
     const [la2,ln2]=_routePt(rt.pts,Math.min(1,f.t+0.013));
     const pt2=scene.map.latLngToContainerPoint([la2,ln2]);
-    const ang=Math.atan2(pt2.y-pt.y,pt2.x-pt.x);
+    // +π/2 corrects for shape nose pointing UP (y=-s) in local space
+    const ang=Math.atan2(pt2.y-pt.y,pt2.x-pt.x)+Math.PI/2;
     // contrail
     if(f.trail.length>2){
       flightCtx.save();
@@ -603,7 +620,7 @@ function _drawFlights(){
     flightCtx.globalAlpha=f.alpha;
     flightCtx.translate(pt.x,pt.y);
     flightCtx.rotate(ang);
-    _drawPlane(flightCtx,8,rt.glow);
+    _drawPlane(flightCtx,12,rt.glow);
     flightCtx.restore();
     return true;
   });
@@ -620,12 +637,13 @@ function _drawFlights(){
     const pt=scene.map.latLngToContainerPoint([ac.vLat,ac.vLng]);
     if(pt.x<-90||pt.x>W+90||pt.y<-90||pt.y>H+90) return false;
     // heading → canvas angle: 0°N = -90° canvas
-    const ang=ac.hdg*Math.PI/180-Math.PI/2;
+    // shape nose points UP (y=-s), so hdg°N→ang=0 keeps nose up. No offset needed.
+    const ang=ac.hdg*Math.PI/180;
     flightCtx.save();
     flightCtx.globalAlpha=ac.alpha;
     flightCtx.translate(pt.x,pt.y);
     flightCtx.rotate(ang);
-    _drawPlane(flightCtx,10,'#ffffff');
+    _drawPlane(flightCtx,14,'#ffffff');
     // callsign (rotate back to screen-space)
     if(ac.call){
       flightCtx.shadowBlur=5; flightCtx.shadowColor='rgba(0,0,0,0.8)';

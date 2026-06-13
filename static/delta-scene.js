@@ -171,9 +171,14 @@
         return;
       }
 
-      // temperature, pollution (air traffic), life — show clean satellite base.
-      // Visual overlays (MODIS tiles, DeltaMap fields) are removed; the story
-      // card and canvas animations (flights, birds) carry the data narrative.
+      if (tab === 'temperature') {
+        // Show MODIS Terra LST tile for this year; fade all other year tiles to 0.
+        const mk = 'modis' + year;
+        if (this._L[mk]) targets[mk] = 0.78;
+        this._tween(targets, yearGrade(year), ms);
+        return;
+      }
+      // pollution (air traffic), life — clean satellite base; canvas animations carry the story.
       this._tween(targets, GRADES.field, ms);
     }
 

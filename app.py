@@ -411,8 +411,8 @@ def flights_api():
                 "lng":  round(lon, 5),
                 "lat":  round(lat, 5),
                 "alt":  round(alt),
-                "vel":  round(s[9] or 220),   # m/s, default cruise if null
-                "hdg":  round(s[10] or 0),    # true track degrees
+                "vel":  round(s[9] if s[9] is not None else 150),  # m/s; explicit None check — 0 is valid
+                "hdg":  round(s[10] if s[10] is not None else 0),  # true track degrees
             })
         result = {
             "ok": True,
@@ -423,7 +423,9 @@ def flights_api():
         _flights_cache = {"data": result, "ts": now}
         return JSONResponse(result)
     except Exception as exc:
-        fallback = _flights_cache["data"] or {"ok": False, "planes": [], "count": 0}
+        # Copy to avoid mutating the cached good payload with an error key.
+        cached = _flights_cache["data"]
+        fallback = dict(cached) if cached else {"ok": False, "planes": [], "count": 0}
         fallback["error"] = str(exc)
         return JSONResponse(fallback)
 
@@ -466,10 +468,11 @@ def life_data_api():
 @app.on_event("startup")
 async def _prefetch():
     loop = asyncio.get_running_loop()
-    loop.run_in_executor(None, _heat_data)
-    loop.run_in_executor(None, _air_data)
-    loop.run_in_executor(None, _life_data)
-    loop.run_in_executor(None, _resolve_landcover, "1985,2000,2010,2020")
+    loop.run_in_executor(None, _heat_data)           # temperature tab → ERA5 July means
+    # _air_data omitted: pollution tab now uses hardcoded TRAFFIC_DATA; CAMS endpoint
+    # remains available at /api/air-data but is no longer displayed in the frontend.
+    loop.run_in_executor(None, _life_data)           # life tab → GBIF bird species
+    loop.run_in_executor(None, _resolve_landcover, "1985,2000,2010,2020")  # land tab → GLC tiles
 
 
 @app.get("/api/reset")
@@ -539,9 +542,10 @@ app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    print("\n  THE GROUND BENEATH GROWTH — installation server")
-    print("  ────────────────────────────────────────────────")
-    print(f"  Tablet     →  http://localhost:{port}/")
-    print(f"  Projection →  http://localhost:{port}/projection")
-    print(f"  Reset day  →  http://localhost:{port}/api/reset\n")
+    print("\n  THE GROUND BENEATH GROWTH -- installation server")
+    print("  ------------------------------------------------")
+    print(f"  Tablet      ->  http://localhost:{port}/")
+    print(f"  Projection  ->  http://localhost:{port}/projection")
+    print(f"  Live flights->  http://localhost:{port}/api/flights")
+    print(f"  Reset day   ->  http://localhost:{port}/api/reset\n")
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
