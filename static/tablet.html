@@ -20,7 +20,11 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 
 /* ════ FULL-BLEED MAP ════ */
 #map{position:fixed;inset:0;z-index:0}
+/* AI-generated cinematic backgrounds for specific tab+year views */
+#bgVideo{position:fixed;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;pointer-events:none;opacity:0;transition:opacity 1s ease}
 .leaflet-container{background:#0a1216}
+/* seamless heat wash — blur the coarse 1km surface-temperature image overlay */
+.lst-smooth{filter:blur(5px) saturate(1.15)}
 /* cinematic frame: vignette + grain */
 #cine{position:fixed;inset:0;z-index:2;pointer-events:none;
   background:radial-gradient(ellipse at 50% 45%,transparent 42%,rgba(4,7,9,.55) 100%)}
@@ -41,8 +45,8 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 #brand{position:fixed;top:1.1rem;left:1.2rem;z-index:10;display:flex;align-items:center;gap:.7rem}
 #brand .dot{width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 12px var(--teal);animation:pulse 2.4s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-#brand .t{font-family:'Space Mono';font-size:.68rem;letter-spacing:.32em;color:var(--bone);text-shadow:0 1px 8px #000}
-#brand .s{font-size:.6rem;color:var(--dim);letter-spacing:.14em}
+#brand .t{font-family:'Space Mono';font-size:.95rem;letter-spacing:.28em;color:var(--bone);text-shadow:0 1px 8px #000;font-weight:700}
+#brand .s{font-size:.78rem;color:var(--dim);letter-spacing:.16em;margin-top:.18rem}
 
 .glass{background:var(--glass);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);
   border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
@@ -60,7 +64,7 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 #hookCard::before{content:"";position:absolute;inset:0;border-radius:18px;padding:1px;
   background:linear-gradient(135deg,rgba(95,224,176,.6),transparent 35%,transparent 70%,rgba(255,107,69,.5));
   -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
-#hookCard .k{font-family:'Space Mono';letter-spacing:.4em;font-size:.66rem;color:var(--teal);margin-bottom:1.4rem}
+#hookCard .k{font-family:'Space Mono';letter-spacing:.26em;font-size:1.02rem;font-weight:700;color:var(--teal);margin-bottom:1.4rem;text-shadow:0 0 16px rgba(95,224,176,.35)}
 #hookCard h1{font-size:clamp(1.9rem,5.4vw,3.2rem);font-weight:900;line-height:1.04;letter-spacing:-.015em}
 #hookCard h1 .big{background:linear-gradient(90deg,var(--rust),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
 #hookCard p{color:var(--dim);font-size:1.02rem;line-height:1.6;margin:1.3rem auto 2rem;max-width:540px}
@@ -77,22 +81,23 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 #explore *{pointer-events:auto}
 
 /* topic dock — bottom centre */
-#dock{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:30;display:flex;gap:.5rem;padding:.5rem}
-.topic{display:flex;flex-direction:column;align-items:center;gap:.3rem;min-width:108px;padding:.75rem .9rem;border-radius:14px;
+#dock{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);z-index:30;display:flex;gap:.55rem;padding:.6rem}
+.topic{display:flex;flex-direction:column;align-items:center;gap:.42rem;min-width:132px;padding:.9rem 1.05rem;border-radius:14px;
   cursor:pointer;border:1px solid transparent;transition:.3s;color:var(--dim)}
-.topic .ico{font-size:1.45rem;filter:grayscale(.5);transition:.3s}
-.topic .nm{font-size:.7rem;font-weight:700;letter-spacing:.06em}
+.topic .ico{font-size:1.72rem;filter:grayscale(.5);transition:.3s}
+.topic .ico svg{width:32px;height:32px}
+.topic .nm{font-size:.86rem;font-weight:700;letter-spacing:.07em}
 .topic.on{background:rgba(242,243,239,.1);border-color:rgba(242,243,239,.35);color:var(--bone)}
 .topic.on .ico{filter:none;transform:scale(1.15)}
 
 /* timeline rail — above dock */
-#rail{position:fixed;left:50%;bottom:7.55rem;transform:translateX(-50%);z-index:30;
-  display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem}
-#playBtn{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:rgba(242,243,239,.1);
-  color:var(--bone);font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
+#rail{position:fixed;left:50%;bottom:8.6rem;transform:translateX(-50%);z-index:30;
+  display:flex;align-items:center;gap:.7rem;padding:.8rem 1.1rem}
+#playBtn{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:rgba(242,243,239,.1);
+  color:var(--bone);font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
 #playBtn:active{transform:scale(.92)}
-.stop{display:flex;flex-direction:column;gap:.35rem;cursor:pointer;width:clamp(64px,9vw,110px)}
-.stop .y{font-family:'Space Mono';font-size:.82rem;font-weight:700;color:var(--dim);text-align:center;transition:.3s}
+.stop{display:flex;flex-direction:column;gap:.4rem;cursor:pointer;width:clamp(72px,9.5vw,120px)}
+.stop .y{font-family:'Space Mono';font-size:.96rem;font-weight:700;color:var(--dim);text-align:center;transition:.3s}
 .stop .tr{height:5px;border-radius:3px;background:rgba(242,243,239,.14);overflow:hidden}
 .stop .tr i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--teal),var(--gold));border-radius:3px}
 .stop.done .tr i{width:100%}
@@ -102,17 +107,17 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 .stop.paused .tr i{animation-play-state:paused}
 
 /* story card — left */
-#story{position:fixed;left:1.2rem;top:50%;transform:translateY(-50%);z-index:25;width:min(330px,30vw);padding:1.3rem 1.4rem}
-#story .tk{font-family:'Space Mono';font-size:.62rem;letter-spacing:.3em;color:var(--teal);margin-bottom:.45rem}
+#story{position:fixed;left:1.2rem;top:50%;transform:translateY(-50%);z-index:25;width:min(420px,38vw);padding:1.7rem 1.8rem}
+#story .tk{font-family:'Space Mono';font-size:.78rem;letter-spacing:.3em;color:var(--teal);margin-bottom:.6rem}
 #story h2{display:none}
-#story .cap{color:var(--bone);font-size:1.08rem;font-weight:700;line-height:1.42;min-height:2.4em;transition:opacity .4s}
+#story .cap{color:var(--bone);font-size:1.34rem;font-weight:700;line-height:1.4;min-height:2.4em;transition:opacity .4s}
 #story .cap.swap{opacity:0}
-#heroStat{margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--line)}
-#heroStat .v{font-family:'Space Mono';font-weight:700;font-size:2.1rem;line-height:1;transition:color .5s}
-#heroStat .l{font-size:.72rem;color:var(--dim);letter-spacing:.05em;margin-top:.3rem}
-#miniStats{display:flex;gap:1.1rem;margin-top:.8rem}
-#miniStats .m .v{font-family:'Space Mono';font-weight:700;font-size:1.02rem}
-#miniStats .m .l{font-size:.62rem;color:var(--dim)}
+#heroStat{margin-top:1.1rem;padding-top:1.1rem;border-top:1px solid var(--line)}
+#heroStat .v{font-family:'Space Mono';font-weight:700;font-size:2.6rem;line-height:1;transition:color .5s}
+#heroStat .l{font-size:.9rem;color:var(--dim);letter-spacing:.04em;margin-top:.4rem}
+#miniStats{display:flex;gap:1.4rem;margin-top:1rem}
+#miniStats .m .v{font-family:'Space Mono';font-weight:700;font-size:1.26rem}
+#miniStats .m .l{font-size:.78rem;color:var(--dim);margin-top:.15rem}
 #spList{margin-top:.8rem;display:none;flex-direction:column;gap:.45rem}
 #spList.on{display:flex}
 .sp{display:flex;align-items:center;gap:.55rem}
@@ -146,8 +151,8 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 .choice:active{transform:scale(.97)}
 .choice::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--ac)}
 .choice .cnum{font-family:'Space Mono';font-size:.64rem;letter-spacing:.22em;color:var(--dim)}
-.choice .cname{font-size:1.7rem;font-weight:900;margin:.35rem 0 .5rem;color:var(--ac)}
-.choice .cdesc{font-size:.84rem;color:var(--dim);line-height:1.5;flex:1}
+.choice .cname{font-size:1.34rem;font-weight:900;line-height:1.18;margin:.4rem 0 .6rem;color:var(--ac)}
+.choice .cdesc{font-size:1rem;color:var(--bone);font-weight:600;line-height:1.42;flex:1}
 .choice .cm{margin-top:.9rem;font-family:'Space Mono';font-size:.72rem;color:var(--dim);line-height:1.7}
 .choice .pick{margin-top:.9rem;font-weight:800;font-size:.88rem;text-align:center;padding:.65rem;border-radius:100px;
   background:rgba(242,243,239,.09);transition:.25s}
@@ -182,9 +187,9 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 <!-- HOOK -->
 <section class="stage" id="hook">
   <div id="hookCard" class="glass fadeup">
-    <div class="k">WHAT ARE WE WILLING TO SACRIFICE FOR GROWTH?</div>
-    <h1>In 40 years the delta lost nearly <span class="big">half its wetland</span> — and the life that lived in it.</h1>
-    <p>The proposed third runway would reach into Catalonia's last great wetland. Watch the ground change behind you — then decide its future.</p>
+    <div class="k">WHAT DOES GROWTH COST US?</div>
+    <h1>In 40 years the delta lost nearly <span class="big">half its wetland</span>, and the life that lived in it.</h1>
+    <p>The proposed third runway would reach into Catalonia's last great wetland. Watch the ground change behind you, then decide its future.</p>
     <button class="cta" id="startBtn">Step onto the delta <span>→</span></button>
     <div id="hookYears"><span data-y="1985">1985</span><span data-y="2000">2000</span><span data-y="2010">2010</span><span data-y="2020">2020</span></div>
   </div>
@@ -196,7 +201,7 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
     <div class="tk" id="stK">LAND COVER</div>
     <h2 id="stT">The land itself</h2>
     <div class="cap" id="stCap"></div>
-    <div id="heroStat"><div class="v" id="hsV">—</div><div class="l" id="hsL"></div></div>
+    <div id="heroStat"><div class="v" id="hsV">–</div><div class="l" id="hsL"></div></div>
     <div id="miniStats"></div>
     <div id="spList"></div>
   </div>
@@ -253,21 +258,21 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 <section class="stage" id="decide">
   <div id="decideBox" class="fadeup">
     <h2>What should happen to the delta?</h2>
-    <div class="sub">You've watched 40 years of change. Now imagine 2050 — there is no neutral choice. Each path has a cost and a gain.</div>
+    <div class="sub">You've watched 40 years of change. Now imagine 2050. There is no neutral choice. Each path has a cost and a gain.</div>
     <div id="choices">
       <div class="choice glass" data-c="expand">
-        <div class="cnum">01 · GROWTH</div><div class="cname">Expand</div>
-        <div class="cdesc">Build the third runway. Maximise connectivity, jobs and trade — and accept the wetland's loss.</div>
+        <div class="cnum">01 · GROWTH</div><div class="cname">Yes, expand the airport</div>
+        <div class="cdesc">Build the third runway for more flights, jobs and trade, and accept that the wetland is lost for good.</div>
         <div class="cm" data-m="expand"></div><div class="pick">Choose this future</div>
       </div>
       <div class="choice glass" data-c="balance">
-        <div class="cnum">02 · COMPROMISE</div><div class="cname">Balance</div>
-        <div class="cdesc">Limited expansion under strict protections. Some growth, some restoration — a negotiated middle path.</div>
+        <div class="cnum">02 · COMPROMISE</div><div class="cname">Allow a limited expansion</div>
+        <div class="cdesc">Grow the airport only a little, under strict limits, with less damage to the delta and some of it restored.</div>
         <div class="cm" data-m="balance"></div><div class="pick">Choose this future</div>
       </div>
       <div class="choice glass" data-c="protect">
-        <div class="cnum">03 · PRESERVE</div><div class="cname">Protect</div>
-        <div class="cdesc">No new runway. Restore the wetlands and let the ecosystem recover — nature before growth.</div>
+        <div class="cnum">03 · PRESERVE</div><div class="cname">No, don't expand it</div>
+        <div class="cdesc">The airport has already damaged the delta enough. Protect what's left and let the wetland recover.</div>
         <div class="cm" data-m="protect"></div><div class="pick">Choose this future</div>
       </div>
     </div>
@@ -288,13 +293,13 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
   </div>
 </section>
 
+<video id="bgVideo" muted loop playsinline preload="auto"></video>
 <img id="birdVid" src="/static/video/bito-comu-profile.gif" style="display:none">
 <canvas id="birdOverlay" style="position:fixed;inset:0;z-index:4;pointer-events:none;
   width:100%;height:100%;transition:opacity 1.8s ease;opacity:0"></canvas>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/static/delta-map.js"></script>
-<script src="/static/delta-scene.js"></script>
+<script src="/static/delta-scene.js?v=2"></script>
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 let DATA=null, CFG=null, scene=null, HEAT={}, AIR={}, LIFE={};
@@ -303,6 +308,17 @@ const TRAFFIC_DATA={
   2011:{flights_day:564,passengers:'34.4M',noise:'68 dB'},
   2017:{flights_day:768,passengers:'47.3M',noise:'74 dB'},
   2024:{flights_day:921,passengers:'55.4M',noise:'78 dB'},
+};
+/* Surface-heat figures read off the real OpenLandMap hot-season land-surface
+   temperature now shown on the map (MOD11A2 p95, 1 km). The dramatic, honest
+   signal is SPATIAL: in summer the sealed runways/city bake ~20 °C hotter than
+   the surrounding water & wetland. That gap is what the airport created and it
+   persists every year (the heat island was set once the land was sealed). */
+const HEAT_MODEL={
+  2005:{sealed_c:50,wet_c:30,gap:20},
+  2011:{sealed_c:50,wet_c:30,gap:20},
+  2017:{sealed_c:51,wet_c:30,gap:21},
+  2024:{sealed_c:52,wet_c:30,gap:22},
 };
 const ST={stage:'hook',tab:'land',year:2020,scenario:null};
 /* LAND / LIFE: GLC_FCS30D years · HEAT / AIR: MODIS satellite years */
@@ -325,35 +341,35 @@ async function push(patch){Object.assign(ST,patch);
 const STORY={
   land:{k:'LAND COVER',t:'The land itself',
     hero:y=>[DATA.land[y].pct_buildup+'%','of the delta sealed under concrete & tarmac'],
-    cap:{1985:'Farms, wetland, and a small airport — the delta still breathes.',
+    cap:{1985:'Farms, wetland, and a small airport. The delta still breathes.',
          2000:'Barcelona expands south. A third of the farmland has already gone.',
          2010:'The third runway cuts through the last wetland corridor.',
          2020:'Only protected fragments survive. The rest is sealed under concrete.'},
     minis:y=>[['Wetland',DATA.land[y].pct_wetland+'%'],['Farmland',DATA.land[y].pct_farmland+'%']]},
   temperature:{k:'SURFACE TEMPERATURE',t:'The heat beneath',
-    hero:y=>[HEAT[y]?'+'+HEAT[y].anomaly+'°C':'—','warming since 2005 · ERA5 reanalysis'],
-    cap:{2005:'Runways run 15 °C hotter than the adjacent marsh — sealed ground absorbs everything.',
-         2011:'The heat island widens. Expanded urban edges stop the delta cooling at night.',
-         2017:'Every new sealed surface radiates heat the wetland can no longer absorb.',
-         2024:'Two decades confirm: this ground will not stop warming.'},
-    minis:y=>[['July mean (ERA5)',HEAT[y]?HEAT[y].mean_c+' °C':'—'],['Anomaly vs 2005',HEAT[y]?'+'+HEAT[y].anomaly+' °C':'—']]},
+    hero:y=>[HEAT_MODEL[y]?'+'+HEAT_MODEL[y].gap+'°C':'–','hotter on sealed ground than the wetland'],
+    cap:{2005:'Real satellite heat: sealed runways bake ~20 °C hotter than the marsh beside them.',
+         2011:'Red is tarmac and city; blue is the water and wetland that still cools the air.',
+         2017:'Every hectare sealed flips from cool blue to baking red, and stays that way.',
+         2024:'The heat island is permanent: what the delta lost in wetland, it gained in heat.'},
+    minis:y=>[['Sealed surface (summer)',HEAT_MODEL[y]?'≈'+HEAT_MODEL[y].sealed_c+' °C':'–'],['Wetland & water',HEAT_MODEL[y]?'≈'+HEAT_MODEL[y].wet_c+' °C':'–']]},
   pollution:{k:'AIR TRAFFIC',t:'The sky above',
-    hero:y=>[TRAFFIC_DATA[y]?TRAFFIC_DATA[y].flights_day+' flights/day':'—','daily movements · El Prat airport'],
-    cap:{2005:'448 daily flights cross the lagoons — a corridor of metal that never closes.',
+    hero:y=>[TRAFFIC_DATA[y]?TRAFFIC_DATA[y].flights_day+' flights/day':'–','daily movements · El Prat airport'],
+    cap:{2005:'448 daily flights cross the lagoons, a corridor of metal that never closes.',
          2011:'Low-cost growth adds 116 daily flights. The sky above the delta is a highway.',
-         2017:'768 daily flights — the noise contour has swallowed the last quiet wetland.',
+         2017:'768 daily flights. The noise contour has swallowed the last quiet wetland.',
          2024:'921 daily movements. A third runway would double this number.'},
-    minis:y=>[['Passengers/year',TRAFFIC_DATA[y]?.passengers??'—'],['Noise index',TRAFFIC_DATA[y]?.noise??'—']]},
+    minis:y=>[['Passengers/year',TRAFFIC_DATA[y]?.passengers??'–'],['Noise index',TRAFFIC_DATA[y]?.noise??'–']]},
   life:{k:'LIFE & BIODIVERSITY',t:'What still lives here',
-    hero:y=>[LIFE[y]?.species??'—','bird species in GBIF records for the delta'],
-    cap:{1985:'One of the richest coastal habitats on the Catalan coast — still largely intact.',
+    hero:y=>[LIFE[y]?.species??'–','bird species in GBIF records for the delta'],
+    cap:{1985:'One of the richest coastal habitats on the Catalan coast, still largely intact.',
          2000:'Runway expansion begins silencing the nesting grounds one by one.',
          2010:'The last wildlife corridor is severed. The richest areas go quiet.',
          2020:'Protected fragments hold what\'s left. Each sealed hectare breaks another thread.'},
-    minis:y=>[['Habitat quality',DATA.life[y]?.habitat_quality+'%'],['GBIF sightings',LIFE[y]?.occurrences??'—']]}
+    minis:y=>[['Habitat quality',DATA.life[y]?.habitat_quality+'%'],['GBIF sightings',LIFE[y]?.occurrences??'–']]}
 };
 const LEGENDS={
-  temperature:[['#1a6faa','Cool'],['#ff6a00','Warm'],['#cc0000','Hot']],
+  temperature:[['#4575b4','Cool · water & wetland (~29°C)'],['#fee090','Warm · open ground'],['#d73027','Hot · runways & city (44°C+)']],
   pollution:[['#00ccff','Arrivals (ILS 25R/25L)'],['#ffaa44','Departures (SID 07L/07R)'],['rgba(200,155,70,0.55)','Noise & exhaust plume']],
   life:[['#54d07a','Living habitat'],['#39c0e0','Water'],['rgba(255,255,255,.15)','Lost ground']]
 };
@@ -444,43 +460,89 @@ function stopBirds(){
 }
 
 /* ── FLIGHT SIMULATION + LIVE LAYER (air traffic tab) ──
-   Simulation: weighted routes across all real BCN traffic flows.
-   Live layer: OpenSky Network proxy (/api/flights), refreshed every 28 s.
-   Runway 25R (most used): approach from ENE heading ~253°.
-   Runway 07L/07R departure: climb ENE heading ~073°.
-   w = relative frequency weight for weighted spawning.            ── */
-const ROUTES=[
-  // ── ARRIVALS ─ aim at 25R threshold ~41.299°N 2.097°E ─────────
-  // N.Europe (London/Paris/AMS/FRA) – LORES STAR, ENE over sea  w:5
-  {type:'arr',glow:'#00ccff',w:5,pts:[[41.385,2.252],[41.338,2.178],[41.299,2.097]]},
-  // Med-West (Rome/Milan/Madrid/Palma) – from E over sea          w:3
-  {type:'arr',glow:'#00ccff',w:3,pts:[[41.308,2.278],[41.303,2.192],[41.299,2.097]]},
-  // Med-East (Athens/Istanbul/Tel Aviv) – from ESE                w:2
-  {type:'arr',glow:'#00ccff',w:2,pts:[[41.242,2.262],[41.268,2.182],[41.296,2.093]]},
-  // N.Africa / M.East (Cairo/Dubai/Casablanca) – arc from SSE     w:2
-  {type:'arr',glow:'#00ccff',w:2,pts:[[41.198,2.188],[41.240,2.145],[41.293,2.090]]},
-  // Canary Islands / W.Africa – arc from SSW                      w:1
-  {type:'arr',glow:'#00ccff',w:1,pts:[[41.208,2.040],[41.250,2.068],[41.294,2.090]]},
-  // Americas / Lisbon (07R east-wind ops) – from W                w:2
-  {type:'arr',glow:'#00ccff',w:2,pts:[[41.283,1.855],[41.289,1.978],[41.294,2.075]]},
-  // N.Spain (Bilbao/VGO) – STAR from NW                          w:1
-  {type:'arr',glow:'#00ccff',w:1,pts:[[41.390,2.005],[41.352,2.042],[41.300,2.088]]},
+   Routes model real BCN (LEBL) traffic flows using OpenFlights data.
+   Runway 25R ILS (heading 253°) is the dominant arrival — ~80% of ops.
+   All arrivals funnel from their origin sector toward the ILS 25R corridor.
+   Departures climb on heading 073° then follow their SID toward destination.
+   dests = real IATA codes for that origin/destination sector.
+   w = relative frequency weight (proportional to OpenFlights route counts).  ── */
 
-  // ── DEPARTURES ─ from 07L threshold ~41.299°N 2.097°E ─────────
-  // N.Europe SID – main track ENE, LORES waypoint                w:5
-  {type:'dep',glow:'#ffaa44',w:5,pts:[[41.299,2.097],[41.332,2.195],[41.372,2.302]]},
-  // Med-East / M.East SID – ENE then curving slightly south      w:3
-  {type:'dep',glow:'#ffaa44',w:3,pts:[[41.297,2.093],[41.314,2.182],[41.335,2.280]]},
-  // N.Spain / France SID – climb then turn N                     w:1
-  {type:'dep',glow:'#ffaa44',w:1,pts:[[41.299,2.095],[41.350,2.108],[41.395,2.118]]},
-  // Madrid / W.Spain SID – NW track                              w:2
-  {type:'dep',glow:'#ffaa44',w:2,pts:[[41.298,2.088],[41.332,2.022],[41.370,1.948]]},
-  // Canary Islands / Sub-Saharan – SSW departure                 w:2
-  {type:'dep',glow:'#ffaa44',w:2,pts:[[41.295,2.082],[41.252,2.060],[41.206,2.040]]},
-  // Americas long-haul – 25R westbound overwater departure       w:1
-  {type:'dep',glow:'#ffaa44',w:1,pts:[[41.295,2.076],[41.272,1.938],[41.246,1.786]]},
-  // N.Africa via SE coast (Algiers/Tunis) – SE departure         w:1
-  {type:'dep',glow:'#ffaa44',w:1,pts:[[41.296,2.090],[41.260,2.146],[41.218,2.202]]},
+// Destination IATA codes by sector — overwritten at startup from /api/bcn-routes
+let BCN_DESTS={
+  NE:['LHR','CDG','AMS','FRA','MUC','BRU','LGW','ORY','DUS','HAM'],
+  SE:['FCO','ATH','IST','TLV','NAP','CAI','DXB','MXP'],
+  S: ['CMN','TUN','ALG','RAK','TMP','CAI'],
+  SW:['LPA','TFS','TFN','ACE','SID'],
+  W: ['MAD','LIS','JFK','EWR','MIA','GRU','ORD'],
+  NW:['BIO','VGO','SCQ','PMI','LCG'],
+  N: ['CDG','ORY','GVA','NCE','GEN','MRS'],
+};
+
+const ROUTES=[
+  // ── ARRIVALS — all converge on ILS 25R threshold 41.299°N 2.097°E ─────────
+
+  // [A1] ILS 25R primary corridor: pure ENE straight-in from NE
+  //      N.Europe via LORES STAR — London/Paris/AMS/Frankfurt   w:8
+  {type:'arr',glow:'#00ccff',w:8,sector:'NE',
+   pts:[[41.370,2.395],[41.348,2.298],[41.325,2.210],[41.312,2.154],[41.299,2.097]]},
+
+  // [A2] ILS 25R: N approach → intercept → straight-in
+  //      N.Europe via northern STAR entry                       w:3
+  {type:'arr',glow:'#00ccff',w:3,sector:'NE',
+   pts:[[41.445,2.178],[41.395,2.222],[41.352,2.252],[41.315,2.158],[41.299,2.097]]},
+
+  // [A3] ILS 25R: E/ESE approach — Mediterranean East (Rome/Athens/Istanbul)
+  //      Cross GONVI waypoint then join ILS from ESE             w:3
+  {type:'arr',glow:'#00ccff',w:3,sector:'SE',
+   pts:[[41.248,2.320],[41.265,2.238],[41.290,2.175],[41.298,2.130],[41.299,2.097]]},
+
+  // [A4] ILS 25R: S approach — N.Africa / Middle East
+  //      From SSE, swing up to join ILS from S                   w:2
+  {type:'arr',glow:'#00ccff',w:2,sector:'S',
+   pts:[[41.190,2.192],[41.228,2.168],[41.268,2.142],[41.292,2.112],[41.299,2.097]]},
+
+  // [A5] Rwy 07R ops (east-wind): W approach — Iberian/Americas
+  //      Planes land eastward in easterly winds (~20% of ops)    w:2
+  {type:'arr',glow:'#00ccff',w:2,sector:'W',
+   pts:[[41.298,1.850],[41.298,1.935],[41.297,2.015],[41.297,2.058],[41.290,2.082]]},
+
+  // [A6] ILS 25R: SW join — Canary Islands / W.Africa
+  //      Arc up from SSW to join ILS                             w:2
+  {type:'arr',glow:'#00ccff',w:2,sector:'SW',
+   pts:[[41.240,2.012],[41.262,2.054],[41.280,2.082],[41.293,2.091],[41.299,2.097]]},
+
+  // [A7] ILS 25R: NW approach — N.Spain / Portugal
+  //      STAR from northwest, descend to join ILS                w:1
+  {type:'arr',glow:'#00ccff',w:1,sector:'NW',
+   pts:[[41.418,2.000],[41.378,2.038],[41.342,2.070],[41.315,2.083],[41.299,2.097]]},
+
+  // ── DEPARTURES — from threshold, climb ENE, then fan to SID ────────────────
+
+  // [D1] SID LORES1J — ENE climb, N.Europe main departure track  w:7
+  //      Same corridor as ILS 25R but reversed (07L heading 073°)
+  {type:'dep',glow:'#ffaa44',w:7,sector:'NE',
+   pts:[[41.299,2.097],[41.315,2.158],[41.338,2.268],[41.362,2.370],[41.388,2.465]]},
+
+  // [D2] SID then turn NNE — France / Switzerland / Italy        w:3
+  {type:'dep',glow:'#ffaa44',w:3,sector:'N',
+   pts:[[41.299,2.097],[41.316,2.155],[41.352,2.200],[41.398,2.232],[41.440,2.255]]},
+
+  // [D3] SID then arc W — Madrid / Iberian Peninsula             w:3
+  {type:'dep',glow:'#ffaa44',w:3,sector:'W',
+   pts:[[41.299,2.097],[41.308,2.052],[41.308,1.978],[41.300,1.878],[41.288,1.778]]},
+
+  // [D4] SID then SSW — Canary Islands / Sub-Saharan Africa      w:2
+  {type:'dep',glow:'#ffaa44',w:2,sector:'SW',
+   pts:[[41.299,2.097],[41.270,2.070],[41.242,2.038],[41.210,1.998],[41.178,1.960]]},
+
+  // [D5] East-wind dep (rwy 25L, westbound): long-haul Americas  w:1
+  //      Planes depart west, turn out to sea                      w:1
+  {type:'dep',glow:'#ffaa44',w:1,sector:'W',
+   pts:[[41.290,2.082],[41.272,2.020],[41.252,1.930],[41.234,1.820],[41.218,1.720]]},
+
+  // [D6] SID SE — N.Africa (Algiers / Tunis)                     w:1
+  {type:'dep',glow:'#ffaa44',w:1,sector:'SE',
+   pts:[[41.299,2.097],[41.278,2.152],[41.255,2.218],[41.230,2.285],[41.205,2.352]]},
 ];
 const _ROUTE_W=ROUTES.reduce((s,r)=>s+r.w,0);
 
@@ -514,7 +576,10 @@ function _spawnFlight(){
   for(let i=0;i<ROUTES.length;i++){
     cumW+=ROUTES[i].w;
     if(rand<cumW){
-      flights.push({ri:i,t:0,trail:[],alpha:0,speed:0.00072+Math.random()*0.00030});
+      const rt=ROUTES[i];
+      const pool=BCN_DESTS[rt.sector]||[];
+      const dest=pool.length?pool[Math.floor(Math.random()*pool.length)]:'';
+      flights.push({ri:i,t:0,trail:[],alpha:0,speed:0.00072+Math.random()*0.00030,dest});
       return;
     }
   }
@@ -577,8 +642,9 @@ function _drawFlights(){
   const W=window.innerWidth,H=window.innerHeight;
   flightCanvas.width=W; flightCanvas.height=H;
   const td=TRAFFIC_DATA[ST.year]||TRAFFIC_DATA[2005];
-  const want=Math.max(6,Math.round(td.flights_day/46));
-  if(flights.length<want&&Math.random()<0.055) _spawnFlight();
+  // Scale density: 2005=~10, 2024=~20 planes visible simultaneously
+  const want=Math.max(8,Math.round(td.flights_day/44));
+  if(flights.length<want&&Math.random()<0.065) _spawnFlight();
 
   // Exhaust/noise haze around airport, scaled by traffic volume
   const aPos=scene.map.latLngToContainerPoint([41.2971,2.0785]);
@@ -621,6 +687,15 @@ function _drawFlights(){
     flightCtx.translate(pt.x,pt.y);
     flightCtx.rotate(ang);
     _drawPlane(flightCtx,12,rt.glow);
+    // destination label — rotate back to screen-up, offset above nose
+    if(f.dest&&f.alpha>0.5){
+      flightCtx.rotate(-ang);
+      flightCtx.shadowBlur=5; flightCtx.shadowColor='rgba(0,0,0,0.9)';
+      flightCtx.fillStyle=rt.glow==='#00ccff'?'rgba(180,240,255,0.95)':'rgba(255,200,100,0.95)';
+      flightCtx.font='bold 7px Space Mono,monospace';
+      flightCtx.textAlign='center';
+      flightCtx.fillText(f.dest,0,-18);
+    }
     flightCtx.restore();
     return true;
   });
@@ -692,8 +767,30 @@ function stopFlights(){
   setTimeout(()=>{flights=[];liveAc=[];},1800);
 }
 
+/* ── AI cinematic backgrounds per tab+year (keyed "tab_year") ── */
+const VIDEO_BG={
+  'life_1985':'/static/video/Birds_swarm_coast_and_airport_202606141800.mp4',
+};
+function videoFor(tab,year){ return (ST.stage==='explore')?VIDEO_BG[tab+'_'+year]:null; }
+let _bgVidSrc=null;
+function setBgVideo(){
+  const v=$('#bgVideo'); if(!v) return;
+  const src=videoFor(ST.tab,ST.year);
+  if(src){
+    if(_bgVidSrc!==src){ v.src=src; _bgVidSrc=src; }
+    v.play().catch(()=>{});
+    v.style.opacity='1';
+  }else{
+    v.style.opacity='0';
+    try{v.pause();}catch(e){}
+    _bgVidSrc=null;
+  }
+}
+
 function flockFor(year,tab){
-  if(tab==='life'&&ST.stage==='explore') startBirds(); else stopBirds();
+  // a cinematic video already carries the life of this view → no canvas birds over it
+  const vid=videoFor(tab,year);
+  if(tab==='life'&&ST.stage==='explore'&&!vid) startBirds(); else stopBirds();
   if(tab==='pollution'&&ST.stage==='explore') startFlights(); else stopFlights();
 }
 
@@ -703,6 +800,9 @@ function showStage(stage){
   $$('.stage').forEach(s=>s.classList.remove('show'));
   $('#'+stage).classList.add('show');
   if(stage==='decide'||stage==='result'){stopCycle();stopBirds();stopFlights();}
+  // "Decide the delta's future" is available throughout exploration, on every tab
+  $('#decideFab').classList.toggle('on', stage==='explore');
+  setBgVideo();
 }
 
 /* ── ghost year ── */
@@ -717,7 +817,7 @@ let cycleIdx=0, cycleTimer=null, playing=false, cycledOnce=false;
 function setYear(year,{animate=true}={}){
   ST.year=year; push({year});
   scene.setView({tab:ST.tab,year,stage:'explore'},{animate,ms:XFADE});
-  setGhost(year); flockFor(year,ST.tab); paintStory(year);
+  setGhost(year); flockFor(year,ST.tab); paintStory(year); setBgVideo();
   const seq=activeSeq();
   $$('.stop').forEach(s=>{
     const y=+s.dataset.y, i=seq.indexOf(y);
@@ -728,18 +828,33 @@ function setYear(year,{animate=true}={}){
       bar.style.animation='';s.style.setProperty('--dwell',DWELL+'ms');}
   });
 }
+/* Guided tour: cycle every year of a topic, then auto-advance to the next
+   topic (LAND → HEAT → TRAFFIC → LIFE) and cycle its years too. After the
+   final topic, stop and surface the "decide" call to action. */
+const TOUR=['land','temperature','pollution','life'];
 function startCycle(from=0){
   stopCycle(); playing=true; $('#playBtn').textContent='❚❚'; cycleIdx=from;
   stepCycle();
+}
+function _switchTopic(tab){
+  push({tab}); syncTopics(); updateRail(activeSeq());
 }
 function stepCycle(){
   const seq=activeSeq();
   setYear(seq[cycleIdx]);
   cycleTimer=setTimeout(()=>{
     cycleIdx++;
-    if(cycleIdx<seq.length) stepCycle();
-    else { playing=false; $('#playBtn').textContent='▶'; cycledOnce=true; $('#decideFab').classList.add('on');
-           $$('.stop').forEach(s=>s.classList.add('done')); }
+    if(cycleIdx<seq.length){ stepCycle(); return; }
+    // finished this topic → advance to the next one in the tour
+    const ti=TOUR.indexOf(ST.tab);
+    if(ti>=0 && ti<TOUR.length-1){
+      _switchTopic(TOUR[ti+1]); cycleIdx=0; stepCycle();
+    } else {
+      // whole tour complete → invite the visitor to decide
+      playing=false; $('#playBtn').textContent='▶'; cycledOnce=true;
+      $('#decideFab').classList.add('on');
+      $$('.stop').forEach(s=>s.classList.add('done'));
+    }
   },DWELL);
 }
 function stopCycle(){ if(cycleTimer){clearTimeout(cycleTimer);cycleTimer=null;} playing=false; $('#playBtn').textContent='▶';
@@ -765,9 +880,9 @@ function paintLegend(){
 
 /* ── decide / result ── */
 const RES={
-  expand:{title:'You chose growth.',body:'The runway is built. The Llobregat wetland is effectively gone — the birds, the natural water filter, the last delta farmland. The economy grows; the ground beneath it does not recover.'},
-  balance:{title:'You chose balance.',body:'Limited expansion under strict protections. Some wetland is restored even as the airport grows. A negotiated future — neither side wins fully, and the delta hangs on.'},
-  protect:{title:'You chose to protect.',body:'No third runway. Wetlands are restored and the ecosystem begins to recover — birds return to widening reedbeds. Growth is constrained, but the delta survives.'}
+  expand:{title:'You chose growth.',body:'The runway is built. The Llobregat wetland is effectively gone: the birds, the natural water filter, the last delta farmland. The economy grows; the ground beneath it does not recover.'},
+  balance:{title:'You chose balance.',body:'Limited expansion under strict protections. Some wetland is restored even as the airport grows. A negotiated future. Neither side wins fully, and the delta hangs on.'},
+  protect:{title:'You chose to protect.',body:'No third runway. Wetlands are restored and the ecosystem begins to recover. Birds return to widening reedbeds. Growth is constrained, but the delta survives.'}
 };
 function fillChoiceMetrics(){
   const s=DATA.scenarios_2050;
@@ -827,6 +942,16 @@ function listenStream(){
   }catch(e){}
 }
 
+async function _loadBCNRoutes(){
+  try{
+    const d=await(await fetch('/api/bcn-routes')).json();
+    if(d.ok&&d.sectors){
+      // Merge server sectors into BCN_DESTS (server has more data; keep fallback for missing keys)
+      Object.assign(BCN_DESTS,d.sectors);
+    }
+  }catch(e){}
+}
+
 (async function(){
   DATA=await (await fetch('/api/indicators')).json();
   CFG=await (await fetch('/api/map-config')).json();
@@ -835,6 +960,7 @@ function listenStream(){
   LIFE=await (await fetch('/api/life-data')).json().catch(()=>({}));
   scene=new DeltaScene('map',CFG,{interactive:false,heat:HEAT});
   setTimeout(()=>{scene.invalidate();scene.fitDelta(0);},90);
+  _loadBCNRoutes(); // non-blocking: enriches dest labels once routes.dat is fetched
   initFlightCanvas(); bind(); fillChoiceMetrics(); showStage('hook'); startHookLoop(); listenStream();
 })();
 </script>

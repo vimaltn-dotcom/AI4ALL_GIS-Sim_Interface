@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+server.log
+server.err
+_prev.png
+_*.png
+exports/

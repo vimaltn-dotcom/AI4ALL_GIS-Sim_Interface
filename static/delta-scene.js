@@ -14,12 +14,11 @@
      lc1985/2005 GLC_FCS30D land-cover via TiTiler (real)        — 1985 / 2005
      (2025 = the satellite base itself)
 
-   Requires Leaflet (window.L) and delta-map.js (window.DeltaMap).
+   Requires Leaflet (window.L).
    ========================================================================== */
 (function (global) {
   'use strict';
   const L = global.L;
-  const BLANK = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
   const ease = t => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
@@ -59,45 +58,42 @@
       this.labels = L.tileLayer(cfg.labels, { maxZoom: 19, opacity: 0.5, zIndex: 700 }).addTo(map);
 
       // persistent cross-fade layers, all mounted at opacity 0
-      this._L = {
-        ign: L.tileLayer.wms(cfg.ign1956.url, {
-          layers: cfg.ign1956.layers, format: 'image/png', version: '1.1.1',
-          transparent: true, maxZoom: 19, opacity: 0, zIndex: 400,
-        }).addTo(map),
-        fA: L.imageOverlay(BLANK, this._bounds, { opacity: 0, zIndex: 500, interactive: false }).addTo(map),
-        fB: L.imageOverlay(BLANK, this._bounds, { opacity: 0, zIndex: 501, interactive: false }).addTo(map),
-      };
+      this._L = {};
+
+      // Per-year REAL aerial imagery (IGN PNOA histórico WMS), one tile layer
+      // per milestone year. Cross-faded in place so the ground genuinely
+      // changes through time while the coordinates stay locked. Tile layers
+      // (not image overlays) keep the runways pixel-aligned to the engraving.
+      if (cfg.aerials && cfg.aerial_wms) {
+        for (const yr of Object.keys(cfg.aerials)) {
+          // PNG + transparent: PNOA is land-only, so sea / coverage gaps fall
+          // through to the Esri satellite base instead of rendering white.
+          this._L['aer' + yr] = L.tileLayer.wms(cfg.aerial_wms, {
+            layers: cfg.aerials[yr], format: 'image/png', version: '1.1.1',
+            transparent: true, maxZoom: 19, opacity: 0, zIndex: 410,
+          }).addTo(map);
+        }
+      }
       if (cfg.landcover) {
         for (const yr of Object.keys(cfg.landcover)) {
           this._L['lc' + yr] = L.tileLayer(cfg.landcover[yr], { maxZoom: 19, opacity: 0, zIndex: 450 }).addTo(map);
         }
       }
-      // MODIS Terra Land Surface Temperature Day tiles (NASA GIBS, 1 km)
-      if (cfg.modis_lst) {
-        for (const yr of Object.keys(cfg.modis_lst)) {
-          this._L['modis' + yr] = L.tileLayer(cfg.modis_lst[yr], {
-            maxZoom: 19, maxNativeZoom: 7, opacity: 0, zIndex: 530, errorTileUrl: BLANK,
-          }).addTo(map);
-        }
-      }
-      // MODIS Terra Aerosol Optical Depth tiles — particle pollution proxy (NASA GIBS)
-      if (cfg.aod_tiles) {
-        for (const yr of Object.keys(cfg.aod_tiles)) {
-          this._L['aod' + yr] = L.tileLayer(cfg.aod_tiles[yr], {
-            maxZoom: 19, maxNativeZoom: 7, opacity: 0, zIndex: 525, errorTileUrl: BLANK,
+      // OpenLandMap land-surface temperature (real, via TiTiler) rendered as a
+      // single bbox image per year and CSS-blurred — a seamless heat wash with
+      // no tile-grid steps. Cool water/wetland blue, baking sealed ground red.
+      if (cfg.lst_images) {
+        for (const yr of Object.keys(cfg.lst_images)) {
+          this._L['lst' + yr] = L.imageOverlay(cfg.lst_images[yr], this._bounds, {
+            opacity: 0, zIndex: 530, interactive: false, className: 'lst-smooth',
           }).addTo(map);
         }
       }
       this._op = {};                 // current opacity per key
       for (const k of Object.keys(this._L)) this._op[k] = 0;
       this._grade = { ...yearGrade(2025) };
-      this._fActive = 'fB';          // slot holding the visible field
       this._raf = 0;
       this._heat = opts.heat || {};
-
-      // offscreen renderer for modelled fields
-      const oc = document.createElement('canvas'); oc.width = 600; oc.height = 600;
-      this._dm = new global.DeltaMap(oc, { grid: 150, glow: false });
       this._applyGrade(this._grade);
     }
 
@@ -137,13 +133,16 @@
       this._raf = requestAnimationFrame(step);
     }
 
-    /* Load a rendered field PNG into the hidden slot and return its key. */
-    _stageField(state) {
-      const url = this._dm.renderField(state);
-      const slot = this._fActive === 'fA' ? 'fB' : 'fA';
-      this._L[slot].setUrl(url);
-      this._fActive = slot;
-      return slot;
+    /* Pick the real aerial layer key for a year (exact match, else nearest). */
+    _aerialKey(year) {
+      if (this._L['aer' + year]) return 'aer' + year;
+      let best = null, bestD = 1e9;
+      for (const k of Object.keys(this._L)) {
+        if (k.slice(0, 3) !== 'aer') continue;
+        const d = Math.abs(parseInt(k.slice(3), 10) - year);
+        if (d < bestD) { bestD = d; best = k; }
+      }
+      return best;
     }
 
     /* The one call the pages use.
@@ -156,29 +155,32 @@
       const scenario = state.scenario || null;
       const targets = {};
 
+      // Real aerial base for this year, cross-faded in on every tab.
+      const aer = this._aerialKey(year);
+      if (aer) targets[aer] = 1;
+
       if (state.stage === 'result' && scenario) {
-        const slot = this._stageField({ layer: 'scenario', phase: 'future', t: 1, scenario });
-        targets[slot] = 0.78;
+        // 2050 futures are hypothetical: keep the latest real aerial and let an
+        // era colour-grade carry the mood (bleak grey expand → lush protect).
         this._tween(targets, GRADES[scenario] || GRADES.balance, ms);
         return;
       }
 
       if (tab === 'land') {
-        if (year <= 1969) targets.ign = 1;
-        else if (year < 2025 && this._L['lc' + year]) targets['lc' + year] = 0.82;
-        // 2025 → satellite only (all overlays fade out)
+        if (year < 2025 && this._L['lc' + year]) targets['lc' + year] = 0.82;
         this._tween(targets, yearGrade(year), ms);
         return;
       }
 
       if (tab === 'temperature') {
-        // Show MODIS Terra LST tile for this year; fade all other year tiles to 0.
-        const mk = 'modis' + year;
-        if (this._L[mk]) targets[mk] = 0.78;
+        // Real OpenLandMap hot-season surface temperature, kept translucent so
+        // the aerial (runways, coast, wetland) reads clearly THROUGH the heat
+        // tint — you see both the place and how hot each surface runs.
+        if (this._L['lst' + year]) targets['lst' + year] = 0.58;
         this._tween(targets, yearGrade(year), ms);
         return;
       }
-      // pollution (air traffic), life — clean satellite base; canvas animations carry the story.
+      // pollution (air traffic), life — year's aerial base; canvas animations carry the story.
       this._tween(targets, GRADES.field, ms);
     }
 

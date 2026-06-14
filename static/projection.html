@@ -3,17 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>The Ground Beneath Growth — Projection</title>
+<title>The Ground Beneath Growth · Projection</title>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:#000;overflow:hidden;cursor:none;font-family:'Archivo',sans-serif;color:#f2f3ef}
 #stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
-/* centred square that registers onto the engraved model — press G for grid */
-#mapBox{position:relative;width:min(100vw,100vh);height:min(100vw,100vh)}
+/* 4:3 frame registered onto the 0.80 m × 0.60 m engraved board — press G for grid.
+   Both constraints resolve to a 4:3 rectangle that fits any projector aspect. */
+#mapBox{position:relative;width:min(100vw,133.333vh);height:min(75vw,100vh)}
 #projMap{width:100%;height:100%}
 .leaflet-container{background:#0a1216}
+/* seamless heat wash — blur the coarse 1km surface-temperature image overlay */
+.lst-smooth{filter:blur(7px) saturate(1.15)}
+#bgVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:590;opacity:0;transition:opacity 1s ease;pointer-events:none}
 #vig{position:absolute;inset:0;z-index:600;pointer-events:none;
   background:radial-gradient(ellipse at 50% 46%,transparent 46%,rgba(0,0,0,.6) 100%)}
 
@@ -51,13 +55,20 @@ html,body{height:100%;background:#000;overflow:hidden;cursor:none;font-family:'A
 #grid{position:absolute;inset:0;display:none;z-index:950;pointer-events:none;
   background-image:linear-gradient(rgba(255,255,255,.3) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.3) 1px,transparent 1px);background-size:5% 5%}
 #grid.on{display:block}
-#grid::after{content:"REGISTRATION — press G";position:absolute;top:1vmin;left:1vmin;font-family:'Space Mono';font-size:1.5vmin;color:#fff}
+#grid::after{content:"REGISTRATION · press G";position:absolute;top:1vmin;left:1vmin;font-family:'Space Mono';font-size:1.5vmin;color:#fff}
+/* projection-fit calibration: scale + pan the whole map onto the engraved board */
+#mapBox{transform-origin:center center;transition:transform .12s ease-out}
+#calib{position:fixed;left:1vmin;bottom:1vmin;z-index:1000;font-family:'Space Mono';font-size:1.5vmin;
+  color:#5fe0b0;background:rgba(0,0,0,.66);padding:.7vmin 1.1vmin;border-radius:.6vmin;opacity:0;
+  transition:opacity .4s;pointer-events:none;white-space:pre;line-height:1.5}
+#calib.on{opacity:1}
 </style>
 </head>
 <body>
 <div id="stage">
   <div id="mapBox">
     <div id="projMap"></div>
+    <video id="bgVideo" muted loop playsinline preload="auto"></video>
     <div id="vig"></div>
     <div id="ghost"><div class="n" id="gN">2025</div><div class="s" id="gS"></div></div>
     <div id="legend"></div>
@@ -66,7 +77,7 @@ html,body{height:100%;background:#000;overflow:hidden;cursor:none;font-family:'A
       <div class="k">LLOBREGAT DELTA · BARCELONA–EL PRAT</div>
       <h1>The ground beneath <span class="big">growth</span>.</h1>
       <p>STEP UP TO THE TABLE</p>
-      <div class="yr mono" id="idleYr">1969 — 2025</div>
+      <div class="yr mono" id="idleYr">1969 to 2025</div>
     </div>
     <div id="hud">
       <div class="l"><div class="k" id="hudK"></div><div class="big" id="hudBig"></div><div class="lede" id="hudLede"></div></div>
@@ -74,34 +85,37 @@ html,body{height:100%;background:#000;overflow:hidden;cursor:none;font-family:'A
     </div>
   </div>
 </div>
+<div id="calib"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/static/delta-map.js"></script>
-<script src="/static/delta-scene.js"></script>
+<script src="/static/delta-scene.js?v=2"></script>
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 let CFG=null, DATA=null, scene=null;
 const ST={stage:'hook',tab:'land',year:2025,scenario:null};
 const SEQ=[1969,1985,2005,2025];
+// Heat-island gap (°C) read off the real OpenLandMap hot-season LST overlay —
+// sealed runways/city vs surrounding water & wetland. Mirrors the tablet.
+const HEAT_MODEL={2005:{gap:20},2011:{gap:20},2017:{gap:21},2024:{gap:22}};
 const YEAR_SRC={1969:'1956 AERIAL · IGN',1985:'SATELLITE · GLC 30m',2005:'SATELLITE · GLC 30m',2025:'SATELLITE · TODAY'};
 
 const LAYER_META={
   land:{k:'LAND COVER',lede:'Wetland and farmland give way to runway and city.',
     hero:y=>[DATA.land[y].pct_buildup+'%','of the delta sealed under concrete']},
-  temperature:{k:'SURFACE TEMPERATURE',lede:'Sealed surfaces trap heat — the delta runs hotter each decade.',
-    hero:y=>['+'+DATA.temperature[y].anomaly+'°C','warming since 1969'],
-    legend:[['#2c7fb8','Cool'],['#fec44f','Warm'],['#d7301f','Hot']]},
-  pollution:{k:'AIR TRAFFIC',lede:'Daily flights trace continuous corridors above the wetland — noise contours grow with each decade.',
-    hero:y=>[{2005:448,2011:564,2017:768,2024:921}[y]||'—','daily movements · El Prat'],
+  temperature:{k:'SURFACE TEMPERATURE',lede:'Real satellite heat: sealed runways and city bake far hotter than the water and wetland.',
+    hero:y=>[HEAT_MODEL[y]?'+'+HEAT_MODEL[y].gap+'°C':'–','hotter on sealed ground than the wetland'],
+    legend:[['#4575b4','Cool · water & wetland'],['#fee090','Warm · open ground'],['#d73027','Hot · runways & city']]},
+  pollution:{k:'AIR TRAFFIC',lede:'Daily flights trace continuous corridors above the wetland. Noise contours grow with each decade.',
+    hero:y=>[{2005:448,2011:564,2017:768,2024:921}[y]||'–','daily movements · El Prat'],
     legend:[['#00ccff','Arrivals (ILS 25R/25L)'],['#ffaa44','Departures (SID 07L/07R)']]},
-  life:{k:'LIFE & BIODIVERSITY',lede:'Green is where wildlife can still live — going out like lights.',
+  life:{k:'LIFE & BIODIVERSITY',lede:'Green is where wildlife can still live, going out like lights.',
     hero:y=>[DATA.life[y].bird_species,'bird species still recorded'],
     legend:[['#54d07a','Living habitat'],['#39c0e0','Water']]}
 };
 const SCEN_META={
   expand:{k:'2050 · EXPANSION',big:'The delta, paved.',lede:'The runway is built. Wetland and birds are effectively gone.',hero:['3.6%','wetland remains']},
   balance:{k:'2050 · BALANCE',big:'A negotiated delta.',lede:'Limited growth with protections. The wetland holds on.',hero:['4.6%','wetland remains']},
-  protect:{k:'2050 · PROTECTION',big:'The delta, recovering.',lede:'No new runway. Wetlands and wildlife return.',hero:['5.3%','wetland — and growing']}
+  protect:{k:'2050 · PROTECTION',big:'The delta, recovering.',lede:'No new runway. Wetlands and wildlife return.',hero:['5.3%','wetland, still growing']}
 };
 function ghost(year,src){
   const g=$('#ghost'); g.classList.remove('on');
@@ -121,8 +135,28 @@ function startIdle(){
 }
 function stopIdle(){ if(idleTimer){clearInterval(idleTimer);idleTimer=null;} }
 
+/* AI cinematic backgrounds per tab+year (mirrors the tablet) */
+const VIDEO_BG={
+  'life_1985':'/static/video/Birds_swarm_coast_and_airport_202606141800.mp4',
+};
+let _bgVidSrc=null;
+function setBgVideo(){
+  const v=$('#bgVideo'); if(!v) return;
+  const src=(ST.stage==='explore')?VIDEO_BG[ST.tab+'_'+ST.year]:null;
+  if(src){
+    if(_bgVidSrc!==src){ v.src=src; _bgVidSrc=src; }
+    v.play().catch(()=>{});
+    v.style.opacity='1';
+  }else{
+    v.style.opacity='0';
+    try{v.pause();}catch(e){}
+    _bgVidSrc=null;
+  }
+}
+
 function draw(){
   if(!scene||!CFG||!DATA) return;
+  setBgVideo();
   const idle=$('#idle'),hud=$('#hud'),leg=$('#legend');
   if(ST.stage==='hook'){ idle.classList.remove('off'); hud.style.opacity=0; leg.style.opacity=0; startIdle(); return; }
   stopIdle(); idle.classList.add('off'); hud.style.opacity=1; leg.style.opacity=1;
@@ -147,7 +181,40 @@ function listen(){
   const es=new EventSource('/api/stream');
   es.onmessage=e=>{const m=JSON.parse(e.data); if(m.type==='state'){Object.assign(ST,m.state);draw();}};
 }
-addEventListener('keydown',e=>{if(e.key==='g'||e.key==='G')$('#grid').classList.toggle('on');});
+/* ── Projection-fit calibration ──────────────────────────────────────────
+   Scale + pan the whole projected map so it registers onto the engraved
+   board. Live-nudged from the keyboard and saved, so it survives reloads.
+     +/-      zoom in / out        (hold Shift for big steps)
+     arrows   nudge position       (hold Shift for big steps)
+     R        reset                                                         */
+const DEFAULT_CAL={s:1.2,x:0,y:0};   // zoomed in to fill the engraved board; tune with +/-
+let CAL={...DEFAULT_CAL};
+try{CAL=Object.assign(CAL,JSON.parse(localStorage.getItem('projCalib2')||'{}'));}catch(e){}
+let calibTimer=null;
+function applyCalib(show){
+  $('#mapBox').style.transform=`translate(${CAL.x}px,${CAL.y}px) scale(${CAL.s})`;
+  if(show){
+    $('#calib').textContent=`FIT  zoom ${CAL.s.toFixed(3)}   x ${CAL.x|0}  y ${CAL.y|0}\n+/-  zoom · arrows  move · R  reset`;
+    $('#calib').classList.add('on');
+    clearTimeout(calibTimer); calibTimer=setTimeout(()=>$('#calib').classList.remove('on'),2600);
+  }
+  try{localStorage.setItem('projCalib2',JSON.stringify(CAL));}catch(e){}
+}
+addEventListener('keydown',e=>{
+  if(e.key==='g'||e.key==='G'){$('#grid').classList.toggle('on');return;}
+  const big=e.shiftKey, zs=big?0.04:0.01, ps=big?20:3; let hit=true;
+  switch(e.key){
+    case '+': case '=': CAL.s=Math.min(4,CAL.s+zs); break;
+    case '-': case '_': CAL.s=Math.max(0.25,CAL.s-zs); break;
+    case 'ArrowLeft':  CAL.x-=ps; break;
+    case 'ArrowRight': CAL.x+=ps; break;
+    case 'ArrowUp':    CAL.y-=ps; break;
+    case 'ArrowDown':  CAL.y+=ps; break;
+    case 'r': case 'R': CAL={...DEFAULT_CAL}; break;
+    default: hit=false;
+  }
+  if(hit){e.preventDefault();applyCalib(true);}
+});
 addEventListener('resize',()=>{if(scene){scene.invalidate();scene.fitDelta(0);}});
 
 (async function(){
@@ -155,7 +222,7 @@ addEventListener('resize',()=>{if(scene){scene.invalidate();scene.fitDelta(0);}}
   CFG=await (await fetch('/api/map-config')).json();
   const HEAT=await (await fetch('/api/heat-data')).json().catch(()=>({}));
   scene=new DeltaScene('projMap',CFG,{interactive:false,heat:HEAT});
-  setTimeout(()=>{scene.invalidate();scene.fitDelta(0);},90);
+  setTimeout(()=>{scene.invalidate();scene.fitDelta(0);applyCalib(false);},90);
   try{const st=await (await fetch('/api/state')).json();Object.assign(ST,st);}catch(e){}
   draw(); listen();
 })();
