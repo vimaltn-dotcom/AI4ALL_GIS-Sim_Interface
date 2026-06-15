@@ -185,8 +185,18 @@
     }
 
     invalidate() { this.map.invalidateSize(); }
-    fitDelta(pad) { this.map.fitBounds(this._bounds, { padding: [pad || 0, pad || 0], animate: false }); }
-    flyHome(ms) { this.map.flyToBounds(this._bounds, { duration: (ms || 1200) / 1000 }); }
+    /* Fill the viewport with the delta (COVER, not letterbox) so it never reads
+       as "zoomed out" on any screen aspect. Computed from the live container
+       size → identical on every load, tablet and projection alike. */
+    fitDelta() {
+      const b = L.latLngBounds(this._bounds);
+      const z = this.map.getBoundsZoom(b, true);   // inside=true → cover the viewport
+      this.map.setView(b.getCenter(), z, { animate: false });
+    }
+    flyHome(ms) {
+      const b = L.latLngBounds(this._bounds);
+      this.map.flyTo(b.getCenter(), this.map.getBoundsZoom(b, true), { duration: (ms || 1200) / 1000 });
+    }
   }
 
   global.DeltaScene = DeltaScene;

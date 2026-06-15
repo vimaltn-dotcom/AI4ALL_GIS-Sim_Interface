@@ -5,3 +5,5 @@ server.err
 _prev.png
 _*.png
 exports/
+data/responses.db
+data/responses.db-*

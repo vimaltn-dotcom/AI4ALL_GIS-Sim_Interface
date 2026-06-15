@@ -22,6 +22,9 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 #map{position:fixed;inset:0;z-index:0}
 /* AI-generated cinematic backgrounds for specific tab+year views */
 #bgVideo{position:fixed;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;pointer-events:none;opacity:0;transition:opacity 1s ease}
+/* outcome film after a choice (plays with audio) */
+#resultVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;background:#000;opacity:0;transition:opacity .6s ease}
+#resCard{position:relative;z-index:2}
 .leaflet-container{background:#0a1216}
 /* seamless heat wash — blur the coarse 1km surface-temperature image overlay */
 .lst-smooth{filter:blur(5px) saturate(1.15)}
@@ -42,11 +45,15 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
   font-size:.85rem;letter-spacing:.25em;text-align:right;margin-top:.6rem;font-weight:400}
 
 /* ════ FLOATING CHROME ════ */
-#brand{position:fixed;top:1.1rem;left:1.2rem;z-index:10;display:flex;align-items:center;gap:.7rem}
+#brand{position:fixed;top:1.1rem;left:1.2rem;z-index:10;display:flex;align-items:center;gap:.7rem;
+  padding:.55rem .9rem .55rem .7rem;border-radius:12px;
+  background:linear-gradient(100deg,rgba(7,11,13,.55),rgba(7,11,13,.18));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 #brand .dot{width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 12px var(--teal);animation:pulse 2.4s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-#brand .t{font-family:'Space Mono';font-size:.95rem;letter-spacing:.28em;color:var(--bone);text-shadow:0 1px 8px #000;font-weight:700}
-#brand .s{font-size:.78rem;color:var(--dim);letter-spacing:.16em;margin-top:.18rem}
+#brand .t{font-family:'Space Mono';font-size:.98rem;letter-spacing:.26em;color:#fff;font-weight:800;
+  text-shadow:0 0 4px rgba(0,0,0,.95),0 2px 10px rgba(0,0,0,.9),0 0 1px rgba(0,0,0,1)}
+#brand .s{font-size:.82rem;color:var(--bone);letter-spacing:.16em;margin-top:.2rem;font-weight:700;
+  text-shadow:0 0 4px rgba(0,0,0,.95),0 1px 8px rgba(0,0,0,.9)}
 
 .glass{background:var(--glass);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);
   border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
@@ -281,6 +288,7 @@ body{background:var(--ink);color:var(--bone);font-family:'Archivo',system-ui,san
 
 <!-- RESULT -->
 <section class="stage" id="result">
+  <video id="resultVideo" playsinline preload="auto"></video>
   <div id="resCard" class="glass fadeup">
     <div class="k">2050 · THE FUTURE YOU CHOSE</div>
     <h2 id="resTitle"></h2>
@@ -770,7 +778,28 @@ function stopFlights(){
 /* ── AI cinematic backgrounds per tab+year (keyed "tab_year") ── */
 const VIDEO_BG={
   'life_1985':'/static/video/Birds_swarm_coast_and_airport_202606141800.mp4',
+  'life_2000':'/static/video/2000.mp4',
+  'life_2010':'/static/video/2010.mp4',
+  'life_2020':'/static/video/2024.mp4',
 };
+/* ── Outcome films played (with audio) after the visitor chooses ── */
+const RESULT_VIDEO={
+  expand:'/static/video/01_expand_growth.mp4',
+  balance:'/static/video/02_balance_compromise.mp4',
+  protect:'/static/video/03_protect_preserve.mp4',
+};
+function playResultVideo(c){
+  const v=$('#resultVideo'); if(!v) return;
+  const src=RESULT_VIDEO[c];
+  if(src){
+    if(v.getAttribute('src')!==src) v.src=src;
+    v.muted=false; v.currentTime=0; v.volume=1;
+    v.play().catch(()=>{});       // called inside the choice-click gesture → audio allowed
+    v.style.opacity='1';
+  }else{
+    v.style.opacity='0'; try{v.pause();}catch(e){}
+  }
+}
 function videoFor(tab,year){ return (ST.stage==='explore')?VIDEO_BG[tab+'_'+year]:null; }
 let _bgVidSrc=null;
 function setBgVideo(){
@@ -802,6 +831,7 @@ function showStage(stage){
   if(stage==='decide'||stage==='result'){stopCycle();stopBirds();stopFlights();}
   // "Decide the delta's future" is available throughout exploration, on every tab
   $('#decideFab').classList.toggle('on', stage==='explore');
+  if(stage!=='result'){ const rv=$('#resultVideo'); if(rv){rv.style.opacity='0'; try{rv.pause();}catch(e){}} }
   setBgVideo();
 }
 
@@ -889,11 +919,23 @@ function fillChoiceMetrics(){
   const f=c=>`Wetland ${c.pct_wetland}% · Built ${c.pct_buildup}%<br>~${c.bird_species} bird species · ${c.mean_c}°C · AQI ${c.aqi}`;
   $$('#choices .cm').forEach(el=>el.innerHTML=f(s[el.dataset.m]));
 }
-async function choose(c){
-  await push({scenario:c,stage:'result'});
-  scene.setView({stage:'result',scenario:c},{ms:2200});
+/* anonymous per-visit token (no personal data) so each response is one visit */
+function newVisitId(){return (self.crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2));}
+let VISIT_ID=newVisitId();
+function choose(c){
+  // Keep this synchronous within the click so the outcome film's audio is allowed to play.
   $('#resTitle').textContent=RES[c].title; $('#resBody').textContent=RES[c].body;
-  showStage('result'); refreshTally();
+  showStage('result');
+  playResultVideo(c);
+  scene.setView({stage:'result',scenario:c},{ms:2200});
+  castVote(c);                          // record the response to the participatory database
+  push({scenario:c,stage:'result'});   // broadcast to the projection (fire-and-forget)
+}
+/* record the decision; the server stores one row per response and returns the live tally */
+function castVote(c){
+  fetch('/api/vote',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({choice:c,session:VISIT_ID})})
+    .then(r=>r.json()).then(paintTally).catch(()=>{});
 }
 async function refreshTally(){try{paintTally(await (await fetch('/api/tally')).json());}catch(e){}}
 function paintTally(t){
@@ -917,7 +959,7 @@ function stopHookLoop(){ if(hookTimer){clearInterval(hookTimer);hookTimer=null;}
 
 /* ── bindings ── */
 function bind(){
-  $('#startBtn').onclick=()=>{ stopHookLoop(); push({stage:'explore',tab:'land'}); showStage('explore');
+  $('#startBtn').onclick=()=>{ VISIT_ID=newVisitId(); stopHookLoop(); push({stage:'explore',tab:'land'}); showStage('explore');
     syncTopics(); updateRail(activeSeq()); startCycle(0); };
   $$('.topic').forEach(t=>t.onclick=()=>{ if(ST.tab===t.dataset.tab&&playing)return;
     push({tab:t.dataset.tab}); syncTopics(); updateRail(activeSeq()); startCycle(0); });

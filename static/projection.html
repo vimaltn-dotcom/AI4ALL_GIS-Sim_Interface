@@ -18,6 +18,7 @@ html,body{height:100%;background:#000;overflow:hidden;cursor:none;font-family:'A
 /* seamless heat wash — blur the coarse 1km surface-temperature image overlay */
 .lst-smooth{filter:blur(7px) saturate(1.15)}
 #bgVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:590;opacity:0;transition:opacity 1s ease;pointer-events:none}
+#resultVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:595;background:#000;opacity:0;transition:opacity .6s ease;pointer-events:none}
 #vig{position:absolute;inset:0;z-index:600;pointer-events:none;
   background:radial-gradient(ellipse at 50% 46%,transparent 46%,rgba(0,0,0,.6) 100%)}
 
@@ -69,6 +70,7 @@ html,body{height:100%;background:#000;overflow:hidden;cursor:none;font-family:'A
   <div id="mapBox">
     <div id="projMap"></div>
     <video id="bgVideo" muted loop playsinline preload="auto"></video>
+    <video id="resultVideo" muted playsinline preload="auto"></video>
     <div id="vig"></div>
     <div id="ghost"><div class="n" id="gN">2025</div><div class="s" id="gS"></div></div>
     <div id="legend"></div>
@@ -138,6 +140,9 @@ function stopIdle(){ if(idleTimer){clearInterval(idleTimer);idleTimer=null;} }
 /* AI cinematic backgrounds per tab+year (mirrors the tablet) */
 const VIDEO_BG={
   'life_1985':'/static/video/Birds_swarm_coast_and_airport_202606141800.mp4',
+  'life_2000':'/static/video/2000.mp4',
+  'life_2010':'/static/video/2010.mp4',
+  'life_2020':'/static/video/2024.mp4',
 };
 let _bgVidSrc=null;
 function setBgVideo(){
@@ -154,9 +159,30 @@ function setBgVideo(){
   }
 }
 
+/* Outcome film mirrored onto the board after a choice (muted — audio is on the tablet) */
+const RESULT_VIDEO={
+  expand:'/static/video/01_expand_growth.mp4',
+  balance:'/static/video/02_balance_compromise.mp4',
+  protect:'/static/video/03_protect_preserve.mp4',
+};
+let _resVidSrc=null;
+function setResultVideo(){
+  const v=$('#resultVideo'); if(!v) return;
+  const src=(ST.stage==='result'&&ST.scenario)?RESULT_VIDEO[ST.scenario]:null;
+  if(src){
+    if(_resVidSrc!==src){ v.src=src; _resVidSrc=src; v.currentTime=0; }
+    v.play().catch(()=>{});
+    v.style.opacity='1';
+  }else{
+    v.style.opacity='0';
+    try{v.pause();}catch(e){}
+    _resVidSrc=null;
+  }
+}
+
 function draw(){
   if(!scene||!CFG||!DATA) return;
-  setBgVideo();
+  setBgVideo(); setResultVideo();
   const idle=$('#idle'),hud=$('#hud'),leg=$('#legend');
   if(ST.stage==='hook'){ idle.classList.remove('off'); hud.style.opacity=0; leg.style.opacity=0; startIdle(); return; }
   stopIdle(); idle.classList.add('off'); hud.style.opacity=1; leg.style.opacity=1;
@@ -187,9 +213,9 @@ function listen(){
      +/-      zoom in / out        (hold Shift for big steps)
      arrows   nudge position       (hold Shift for big steps)
      R        reset                                                         */
-const DEFAULT_CAL={s:1.2,x:0,y:0};   // zoomed in to fill the engraved board; tune with +/-
+const DEFAULT_CAL={s:1,x:0,y:0};   // base map already fills the board; nudge here only for physical board registration
 let CAL={...DEFAULT_CAL};
-try{CAL=Object.assign(CAL,JSON.parse(localStorage.getItem('projCalib2')||'{}'));}catch(e){}
+try{CAL=Object.assign(CAL,JSON.parse(localStorage.getItem('projCalib3')||'{}'));}catch(e){}
 let calibTimer=null;
 function applyCalib(show){
   $('#mapBox').style.transform=`translate(${CAL.x}px,${CAL.y}px) scale(${CAL.s})`;
@@ -198,7 +224,7 @@ function applyCalib(show){
     $('#calib').classList.add('on');
     clearTimeout(calibTimer); calibTimer=setTimeout(()=>$('#calib').classList.remove('on'),2600);
   }
-  try{localStorage.setItem('projCalib2',JSON.stringify(CAL));}catch(e){}
+  try{localStorage.setItem('projCalib3',JSON.stringify(CAL));}catch(e){}
 }
 addEventListener('keydown',e=>{
   if(e.key==='g'||e.key==='G'){$('#grid').classList.toggle('on');return;}

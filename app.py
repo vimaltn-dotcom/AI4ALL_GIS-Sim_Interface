@@ -20,11 +20,16 @@ Run:
 from __future__ import annotations
 
 import asyncio
+import csv
+import io
 import json
 import math
 import os
 import re
+import sqlite3
+import threading
 import time
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote_plus, urljoin
@@ -72,24 +77,81 @@ STATE: dict = {
 _subscribers: set[asyncio.Queue] = set()
 
 
-def _load_votes() -> dict:
+# ─────────────────────────────────────────────────────────────
+# Participatory record — every decision is stored as one row in a SQLite
+# database, so the responses gathered here are a real, queryable dataset that
+# can feed back into the city's urban-planning conversation (not just a tally).
+#   data/responses.db · table `responses`
+#       id          autoincrement
+#       choice      expand | balance | protect
+#       created_at  ISO-8601 UTC timestamp of the vote
+#       session     anonymous per-visit token (no personal data)
+#       user_agent  device string (helps distinguish kiosk vs remote)
+# ─────────────────────────────────────────────────────────────
+DB_FILE = DATA / "responses.db"
+CHOICES = ("expand", "balance", "protect")
+_db_lock = threading.Lock()
+
+
+def _db() -> sqlite3.Connection:
+    conn = sqlite3.connect(DB_FILE, timeout=10)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _legacy_votes() -> dict:
     if VOTES_FILE.exists():
         try:
             return json.loads(VOTES_FILE.read_text())
         except Exception:
             pass
-    return {"expand": 0, "balance": 0, "protect": 0}
+    return {}
 
 
-def _save_votes(v: dict) -> None:
+def _init_db() -> None:
+    DATA.mkdir(exist_ok=True)
+    with _db() as conn:
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS responses(
+                   id INTEGER PRIMARY KEY AUTOINCREMENT,
+                   choice TEXT NOT NULL,
+                   created_at TEXT NOT NULL,
+                   session TEXT,
+                   user_agent TEXT)"""
+        )
+        # One-time migration: fold any existing votes.json counts into the DB so
+        # the running public tally carries over, then the DB is the source of truth.
+        if conn.execute("SELECT COUNT(*) FROM responses").fetchone()[0] == 0:
+            ts = datetime.now(timezone.utc).isoformat()
+            for choice, n in _legacy_votes().items():
+                if choice in CHOICES:
+                    conn.executemany(
+                        "INSERT INTO responses(choice,created_at,session,user_agent) VALUES(?,?,?,?)",
+                        [(choice, ts, "legacy", "migrated-from-votes.json")] * int(n or 0),
+                    )
+        conn.commit()
+
+
+def _counts() -> dict:
+    out = {c: 0 for c in CHOICES}
     try:
-        DATA.mkdir(exist_ok=True)
-        VOTES_FILE.write_text(json.dumps(v))
-    except Exception:
-        pass
+        with _db() as conn:
+            for row in conn.execute("SELECT choice, COUNT(*) n FROM responses GROUP BY choice"):
+                if row["choice"] in out:
+                    out[row["choice"]] = row["n"]
+    except Exception as exc:
+        print(f"  [responses] count failed: {exc}")
+    return out
 
 
-VOTES = _load_votes()
+def _record_vote(choice: str, session: str | None, user_agent: str | None) -> None:
+    ts = datetime.now(timezone.utc).isoformat()
+    with _db_lock, _db() as conn:
+        conn.execute(
+            "INSERT INTO responses(choice,created_at,session,user_agent) VALUES(?,?,?,?)",
+            (choice, ts, session, user_agent),
+        )
+        conn.commit()
 
 
 async def _broadcast(payload: dict) -> None:
@@ -376,30 +438,78 @@ async def set_state(patch: StatePatch):
 
 
 class Vote(BaseModel):
-    choice: str  # expand | balance | protect
+    choice: str                      # expand | balance | protect
+    session: str | None = None       # anonymous per-visit token from the tablet
 
 
 @app.post("/api/vote")
-async def vote(v: Vote):
-    if v.choice in VOTES:
-        VOTES[v.choice] += 1
-        _save_votes(VOTES)
-        await _broadcast({"type": "tally", "tally": VOTES})
+async def vote(v: Vote, request: Request):
+    if v.choice in CHOICES:
+        ua = request.headers.get("user-agent", "")
+        await asyncio.get_running_loop().run_in_executor(None, _record_vote, v.choice, v.session, ua)
+        await _broadcast({"type": "tally", "tally": _counts()})
     return JSONResponse(_tally_payload())
 
 
 def _tally_payload() -> dict:
-    total = sum(VOTES.values()) or 1
+    counts = _counts()
+    total = sum(counts.values()) or 1
     return {
-        "counts": VOTES,
-        "total": sum(VOTES.values()),
-        "pct": {k: round(VOTES[k] / total * 100) for k in VOTES},
+        "counts": counts,
+        "total": sum(counts.values()),
+        "pct": {k: round(counts[k] / total * 100) for k in counts},
     }
 
 
 @app.get("/api/tally")
 def tally():
     return JSONResponse(_tally_payload())
+
+
+@app.get("/api/responses")
+def responses_summary():
+    """The full participatory picture: totals, share, and a daily breakdown —
+    enough to actually inform a planning decision, not just a live count."""
+    payload = _tally_payload()
+    daily: dict[str, dict] = {}
+    recent: list[dict] = []
+    try:
+        with _db() as conn:
+            for row in conn.execute(
+                "SELECT substr(created_at,1,10) d, choice, COUNT(*) n "
+                "FROM responses WHERE session IS NOT 'legacy' GROUP BY d, choice ORDER BY d"
+            ):
+                daily.setdefault(row["d"], {c: 0 for c in CHOICES})[row["choice"]] = row["n"]
+            for row in conn.execute(
+                "SELECT choice, created_at FROM responses ORDER BY id DESC LIMIT 25"
+            ):
+                recent.append({"choice": row["choice"], "at": row["created_at"]})
+    except Exception as exc:
+        payload["error"] = str(exc)
+    payload["by_day"] = daily
+    payload["recent"] = recent
+    return JSONResponse(payload)
+
+
+@app.get("/api/responses.csv")
+def responses_csv():
+    """Download every recorded response as CSV — the dataset for analysis."""
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["id", "choice", "created_at_utc", "session", "user_agent"])
+    try:
+        with _db() as conn:
+            for row in conn.execute(
+                "SELECT id, choice, created_at, session, user_agent FROM responses ORDER BY id"
+            ):
+                w.writerow([row["id"], row["choice"], row["created_at"], row["session"], row["user_agent"]])
+    except Exception as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+    return Response(
+        content=buf.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="delta_responses.csv"'},
+    )
 
 
 @app.get("/api/heat-data")
@@ -651,6 +761,7 @@ def life_data_api():
 
 @app.on_event("startup")
 async def _prefetch():
+    _init_db()                                                # participatory responses DB (+ migrate legacy votes)
     loop = asyncio.get_running_loop()
     loop.run_in_executor(None, _heat_data)                    # temperature tab → ERA5 July means
     loop.run_in_executor(None, _life_data)                    # life tab → GBIF bird species
@@ -660,15 +771,14 @@ async def _prefetch():
 
 @app.get("/api/reset")
 async def reset():
-    """Admin: clear the day's votes and return the installation to the hook."""
-    for k in VOTES:
-        VOTES[k] = 0
-    _save_votes(VOTES)
+    """Admin: return the installation to the hook for the next visitor.
+    Recorded responses are PRESERVED — this is real participatory data and the
+    public tally is cumulative. (To export, see /api/responses.csv.)"""
     STATE.update(stage="hook", tab="land", year=2025, scenario=None)
     STATE["rev"] += 1
-    await _broadcast({"type": "tally", "tally": VOTES})
     await _broadcast({"type": "state", "state": STATE})
-    return JSONResponse({"ok": True})
+    await _broadcast({"type": "tally", "tally": _counts()})
+    return JSONResponse({"ok": True, "preserved_responses": sum(_counts().values())})
 
 
 # ─────────────────────────────────────────────────────────────
@@ -682,7 +792,7 @@ async def stream(request: Request):
     async def gen():
         # Prime the new client with current state + tally.
         yield _sse({"type": "state", "state": STATE})
-        yield _sse({"type": "tally", "tally": VOTES})
+        yield _sse({"type": "tally", "tally": _counts()})
         try:
             while True:
                 if await request.is_disconnected():
@@ -730,5 +840,6 @@ if __name__ == "__main__":
     print(f"  Tablet      ->  http://localhost:{port}/")
     print(f"  Projection  ->  http://localhost:{port}/projection")
     print(f"  Live flights->  http://localhost:{port}/api/flights")
+    print(f"  Responses   ->  http://localhost:{port}/api/responses   (CSV: /api/responses.csv)")
     print(f"  Reset day   ->  http://localhost:{port}/api/reset\n")
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
